@@ -28,13 +28,6 @@
 
 ---
 
-<div align="center">
-  <h3>📱 App Screenshots & Visual Preview</h3>
-  <img src="assets/screenshots/dashboard.png" alt="Meketa Home Dashboard & Scam Detection UI" width="700"/>
-</div>
-
----
-
 ## 🌟 Key Features
 
 ### 🛡️ 10-Layer On-Device Scam Detection Engine
