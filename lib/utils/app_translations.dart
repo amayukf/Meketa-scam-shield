@@ -101,6 +101,12 @@ class AppTranslations {
       'privacy': 'Privacy Policy',
       'privacy_sub': 'All data stays on your phone',
       'select_lang': 'Select Language',
+      'cloud_ai_privacy': 'Cloud AI Analysis',
+      'cloud_ai_privacy_sub': 'Allow optional Gemini AI scanning for ambiguous messages',
+      'clear_chat': 'Clear Chat',
+      'search_placeholder': 'Search messages or senders...',
+      'undo': 'Undo',
+
       'privacy_policy_title': 'Privacy Policy',
       'privacy_policy_body':
           'All SMS analysis happens locally on your device. No message content is ever sent to external servers without permission.',
@@ -208,6 +214,12 @@ class AppTranslations {
       'privacy': 'ግላዊነት',
       'privacy_sub': 'ሁሉም መረጃ በስልክዎ ላይ ብቻ ይኖራል',
       'select_lang': 'ቋንቋ ይምረጡ',
+      'cloud_ai_privacy': 'የክላውድ AI ምርመራ',
+      'cloud_ai_privacy_sub': 'ለአጠራጣሪ መልዕክቶች Gemini AI መጠቀምን ፍቀድ',
+      'clear_chat': 'ውይይት አጽዳ',
+      'search_placeholder': 'መልዕክት ወይም ስልክ ይፈልጉ...',
+      'undo': 'መለስ',
+
       'privacy_policy_title': 'የግላዊነት ፖሊሲ',
       'privacy_policy_body':
           'የመልዕክት ምርመራዎች በሙሉ በስልክዎ ላይ ይከናወናሉ። ምንም መረጃ ወደ ውጭ አገልጋይ አይላክም።',

@@ -82,6 +82,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     _scrollToBottom();
 
     final reply = await GeminiService.chatWithAssistant(_history, msg);
+    if (!mounted) return;
 
     _history.add(GeminiChatMessage(role: 'user', text: msg));
     _history.add(GeminiChatMessage(role: 'model', text: reply));

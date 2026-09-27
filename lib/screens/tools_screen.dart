@@ -41,6 +41,7 @@ class _ToolsScreenState extends State<ToolsScreen>
     });
 
     final result = await VirusTotalService.scanLink(url);
+    if (!mounted) return;
 
     setState(() {
       _scanResult = result;

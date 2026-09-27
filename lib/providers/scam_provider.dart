@@ -215,10 +215,47 @@ class ScamProvider extends ChangeNotifier {
     final id = await _dbService.insertAlert(alert);
     final savedAlert = alert.copyWith(id: id);
 
-    await loadAlerts();
-    await loadStats();
+    _alerts.insert(0, savedAlert);
+    _applyCurrentFilter();
+    _recomputeStatsFromCurrentAlerts();
+    notifyListeners();
 
     return savedAlert;
+  }
+
+  void _recomputeStatsFromCurrentAlerts() {
+    final totalScanned = _alerts.length;
+    final scamsBlocked = _alerts.where((a) => a.isScam).length;
+    final blockRate = totalScanned > 0 ? ((scamsBlocked / totalScanned) * 100).round() : 0;
+    _stats = {
+      'totalScanned': totalScanned,
+      'scamsBlocked': scamsBlocked,
+      'blockRate': blockRate,
+      'familyProtected': 1,
+    };
+  }
+
+  void _applyCurrentFilter() {
+    final now = DateTime.now();
+    switch (_currentFilter) {
+      case 'today':
+        final startOfDay = DateTime(now.year, now.month, now.day);
+        _filteredAlerts = _alerts.where((a) => a.timestamp.isAfter(startOfDay)).toList();
+        break;
+      case 'week':
+        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        final startOfWeekDay = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+        _filteredAlerts = _alerts.where((a) => a.timestamp.isAfter(startOfWeekDay)).toList();
+        break;
+      case 'month':
+        final startOfMonth = DateTime(now.year, now.month, 1);
+        _filteredAlerts = _alerts.where((a) => a.timestamp.isAfter(startOfMonth)).toList();
+        break;
+      case 'all':
+      default:
+        _filteredAlerts = List.from(_alerts);
+        break;
+    }
   }
 
   /// Record user feedback as a weighted reputation signal
@@ -254,9 +291,12 @@ class ScamProvider extends ChangeNotifier {
       isScam: adjustedIsScam,
     );
 
+    _alerts[alertIndex] = updatedAlert;
     await _dbService.updateAlert(updatedAlert);
-    await loadAlerts();
-    await loadStats();
+
+    _applyCurrentFilter();
+    _recomputeStatsFromCurrentAlerts();
+    notifyListeners();
   }
 
   Future<void> markAsSafe(int id) async {
@@ -268,9 +308,11 @@ class ScamProvider extends ChangeNotifier {
   }
 
   Future<void> deleteAlert(int id) async {
+    _alerts.removeWhere((a) => a.id == id);
     await _dbService.deleteAlert(id);
-    await loadAlerts();
-    await loadStats();
+    _applyCurrentFilter();
+    _recomputeStatsFromCurrentAlerts();
+    notifyListeners();
   }
 
   int get scamFreePercentage {

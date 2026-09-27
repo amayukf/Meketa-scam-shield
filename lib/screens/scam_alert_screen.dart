@@ -33,6 +33,8 @@ class _ScamAlertScreenState extends State<ScamAlertScreen> {
       allowCloudAnalysis: allowCloudAi,
     );
 
+    if (!mounted) return;
+
     setState(() => _isExplaining = false);
 
     if (!context.mounted) return;

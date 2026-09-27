@@ -101,6 +101,7 @@ class MainNavigationState extends State<MainNavigation> {
 
     final smsStatus = await Permission.sms.status;
     final notifStatus = await Permission.notification.status;
+    if (!mounted) return;
 
     setState(() {
       _smsPermStatus = smsStatus.toString();
@@ -124,6 +125,7 @@ class MainNavigationState extends State<MainNavigation> {
       Permission.sms,
       Permission.notification,
     ].request();
+    if (!mounted) return;
 
     final smsGranted = statuses[Permission.sms]?.isGranted ?? false;
 

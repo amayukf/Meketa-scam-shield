@@ -7,8 +7,22 @@ import '../utils/app_translations.dart';
 import '../widgets/alert_card.dart';
 import 'scam_alert_screen.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
+
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +35,16 @@ class HistoryScreen extends StatelessWidget {
         }
 
         final lang = provider.currentLanguage;
-        final alerts = provider.filteredAlerts;
+        final rawAlerts = provider.filteredAlerts;
+
+        final alerts = _searchQuery.isEmpty
+            ? rawAlerts
+            : rawAlerts.where((a) {
+                final q = _searchQuery.toLowerCase();
+                return a.message.toLowerCase().contains(q) ||
+                    a.sender.toLowerCase().contains(q) ||
+                    (a.claimedOrganization?.toLowerCase().contains(q) ?? false);
+              }).toList();
 
         return SafeArea(
           child: CustomScrollView(
@@ -49,6 +72,40 @@ class HistoryScreen extends StatelessWidget {
                           color: AppColors.textSecondary,
                         ),
                       ),
+                      const SizedBox(height: 12),
+
+                      // Search bar
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (val) => setState(() => _searchQuery = val),
+                          decoration: InputDecoration(
+                            hintText: AppTranslations.get(lang, 'search_placeholder'),
+                            hintStyle: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary.withValues(alpha: 0.7),
+                            ),
+                            prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textSecondary),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear_rounded, size: 18),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() => _searchQuery = '');
+                                    },
+                                    tooltip: 'Clear search',
+                                  )
+                                : null,
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -57,7 +114,7 @@ class HistoryScreen extends StatelessWidget {
               // Risk Summary Strip
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                   child: Row(
                     children: [
                       _RiskBadge(
@@ -91,7 +148,7 @@ class HistoryScreen extends StatelessWidget {
               // Filter Chips
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                   child: Row(
                     children: [
                       _FilterChip(
@@ -126,7 +183,7 @@ class HistoryScreen extends StatelessWidget {
                 ),
               ),
 
-              // Alert List
+              // Alert List with Dismissible & Undo
               alerts.isEmpty
                   ? SliverToBoxAdapter(
                       child: Padding(
@@ -136,8 +193,7 @@ class HistoryScreen extends StatelessWidget {
                             Icon(
                               Icons.sms_rounded,
                               size: 56,
-                              color: AppColors.textSecondary
-                                  .withValues(alpha: 0.3),
+                              color: AppColors.textSecondary.withValues(alpha: 0.3),
                             ),
                             const SizedBox(height: 16),
                             Text(
@@ -153,8 +209,7 @@ class HistoryScreen extends StatelessWidget {
                               AppTranslations.get(lang, 'waiting_sms'),
                               style: TextStyle(
                                 fontSize: 13,
-                                color: AppColors.textSecondary
-                                    .withValues(alpha: 0.7),
+                                color: AppColors.textSecondary.withValues(alpha: 0.7),
                               ),
                             ),
                           ],
@@ -167,16 +222,51 @@ class HistoryScreen extends StatelessWidget {
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             final alert = alerts[index];
-                            return AlertCard(
-                              alert: alert,
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        ScamAlertScreen(alert: alert),
-                                  ),
-                                );
+                            return Dismissible(
+                              key: Key('alert_${alert.id ?? index}'),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                margin: const EdgeInsets.only(bottom: 12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.danger,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                              ),
+                              onDismissed: (_) async {
+                                final deletedAlert = alert;
+                                await provider.deleteAlert(alert.id!);
+
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('Alert deleted'),
+                                      behavior: SnackBarBehavior.floating,
+                                      action: SnackBarAction(
+                                        label: AppTranslations.get(lang, 'undo'),
+                                        onPressed: () {
+                                          provider.analyzeAndSave(
+                                            deletedAlert.message,
+                                            deletedAlert.sender,
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                }
                               },
+                              child: AlertCard(
+                                alert: alert,
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => ScamAlertScreen(alert: alert),
+                                    ),
+                                  );
+                                },
+                              ),
                             );
                           },
                           childCount: alerts.length,
@@ -258,23 +348,28 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.divider,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: 'Filter $label',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : AppColors.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isSelected ? AppColors.primary : AppColors.divider,
+            ),
           ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : AppColors.textSecondary,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isSelected ? Colors.white : AppColors.textSecondary,
+            ),
           ),
         ),
       ),

@@ -11,8 +11,7 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<ScamProvider>();
-    final lang = provider.currentLanguage;
+    final lang = context.select<ScamProvider, String>((p) => p.currentLanguage);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -29,26 +28,46 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            _SettingsTile(
-              icon: Icons.notifications_rounded,
-              title: AppTranslations.get(lang, 'notifications'),
-              subtitle: AppTranslations.get(lang, 'notif_sub'),
-              trailing: Switch(
-                value: provider.notificationsEnabled,
-                onChanged: (v) => provider.setNotificationsEnabled(v),
-                activeThumbColor: AppColors.safe,
-                activeTrackColor: AppColors.safe.withValues(alpha: 0.3),
+            Selector<ScamProvider, bool>(
+              selector: (_, p) => p.notificationsEnabled,
+              builder: (ctx, enabled, _) => _SettingsTile(
+                icon: Icons.notifications_rounded,
+                title: AppTranslations.get(lang, 'notifications'),
+                subtitle: AppTranslations.get(lang, 'notif_sub'),
+                trailing: Switch(
+                  value: enabled,
+                  onChanged: (v) => ctx.read<ScamProvider>().setNotificationsEnabled(v),
+                  activeThumbColor: AppColors.safe,
+                  activeTrackColor: AppColors.safe.withValues(alpha: 0.3),
+                ),
               ),
             ),
-            _SettingsTile(
-              icon: Icons.shield_rounded,
-              title: AppTranslations.get(lang, 'auto_scan'),
-              subtitle: AppTranslations.get(lang, 'auto_scan_sub'),
-              trailing: Switch(
-                value: provider.autoScanEnabled,
-                onChanged: (v) => provider.setAutoScanEnabled(v),
-                activeThumbColor: AppColors.safe,
-                activeTrackColor: AppColors.safe.withValues(alpha: 0.3),
+            Selector<ScamProvider, bool>(
+              selector: (_, p) => p.autoScanEnabled,
+              builder: (ctx, enabled, _) => _SettingsTile(
+                icon: Icons.shield_rounded,
+                title: AppTranslations.get(lang, 'auto_scan'),
+                subtitle: AppTranslations.get(lang, 'auto_scan_sub'),
+                trailing: Switch(
+                  value: enabled,
+                  onChanged: (v) => ctx.read<ScamProvider>().setAutoScanEnabled(v),
+                  activeThumbColor: AppColors.safe,
+                  activeTrackColor: AppColors.safe.withValues(alpha: 0.3),
+                ),
+              ),
+            ),
+            Selector<ScamProvider, bool>(
+              selector: (_, p) => p.allowCloudAiAnalysis,
+              builder: (ctx, enabled, _) => _SettingsTile(
+                icon: Icons.psychology_rounded,
+                title: AppTranslations.get(lang, 'cloud_ai_privacy'),
+                subtitle: AppTranslations.get(lang, 'cloud_ai_privacy_sub'),
+                trailing: Switch(
+                  value: enabled,
+                  onChanged: (v) => ctx.read<ScamProvider>().setAllowCloudAiAnalysis(v),
+                  activeThumbColor: AppColors.safe,
+                  activeTrackColor: AppColors.safe.withValues(alpha: 0.3),
+                ),
               ),
             ),
             _SettingsTile(
@@ -68,9 +87,9 @@ class SettingsScreen extends StatelessWidget {
             _SettingsTile(
               icon: Icons.language_rounded,
               title: AppTranslations.get(lang, 'language'),
-              subtitle: provider.currentLanguage == 'Amharic'
+              subtitle: lang == 'Amharic'
                   ? 'አማርኛ (Amharic)'
-                  : provider.currentLanguage == 'Oromo'
+                  : lang == 'Oromo'
                       ? 'Afaan Oromoo'
                       : 'English',
               trailing: const Icon(Icons.chevron_right_rounded,
@@ -85,7 +104,7 @@ class SettingsScreen extends StatelessWidget {
                       children: [
                         ListTile(
                           title: const Text('English'),
-                          trailing: provider.currentLanguage == 'English'
+                          trailing: lang == 'English'
                               ? const Icon(Icons.check_circle_rounded,
                                   color: AppColors.safe)
                               : null,
@@ -98,7 +117,7 @@ class SettingsScreen extends StatelessWidget {
                         ),
                         ListTile(
                           title: const Text('አማርኛ (Amharic)'),
-                          trailing: provider.currentLanguage == 'Amharic'
+                          trailing: lang == 'Amharic'
                               ? const Icon(Icons.check_circle_rounded,
                                   color: AppColors.safe)
                               : null,
@@ -111,7 +130,7 @@ class SettingsScreen extends StatelessWidget {
                         ),
                         ListTile(
                           title: const Text('Afaan Oromoo'),
-                          trailing: provider.currentLanguage == 'Oromo'
+                          trailing: lang == 'Oromo'
                               ? const Icon(Icons.check_circle_rounded,
                                   color: AppColors.safe)
                               : null,
