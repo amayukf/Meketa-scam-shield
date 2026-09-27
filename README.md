@@ -28,6 +28,17 @@
 
 ---
 
+<div align="center">
+  <h3>📱 App UI Designs (Figma Mockups)</h3>
+
+|                                 Home Dashboard                                 |                            Scam Alert Breakdown                            |                              Threat History                              |
+| :----------------------------------------------------------------------------: | :------------------------------------------------------------------------: | :----------------------------------------------------------------------: |
+| <img src="design%20screenshoot%20from%20figma/homedashboard.png" width="240"/> | <img src="design%20screenshoot%20from%20figma/scamalert.png" width="240"/> | <img src="design%20screenshoot%20from%20figma/history.png" width="240"/> |
+
+</div>
+
+---
+
 ## 🌟 Key Features
 
 ### 🛡️ 10-Layer On-Device Scam Detection Engine
