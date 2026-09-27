@@ -1,0 +1,44 @@
+﻿
+ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ
+Γöé A new version of Flutter is available!                  Γöé
+Γöé                                                         Γöé
+Γöé To update to the latest version, run "flutter upgrade". Γöé
+ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ
+Resolving dependencies...
+Downloading packages...
+  code_assets 1.2.1 (2.0.0 available)
+  dbus 0.7.14 (0.7.15 available)
+  flutter_local_notifications 18.0.1 (22.3.0 available)
+  flutter_local_notifications_linux 5.0.0 (8.0.1 available)
+  flutter_local_notifications_platform_interface 8.0.0 (12.2.0 available)
+  google_fonts 6.3.3 (8.2.1 available)
+  hooks 2.0.2 (2.2.0 available)
+  matcher 0.12.19 (0.12.20 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.0 (1.19.0 available)
+  objective_c 9.5.0 (9.6.0 available)
+  permission_handler 11.4.0 (13.0.1 available)
+  permission_handler_android 12.1.0 (14.0.0 available)
+  record_use 0.6.0 (1.1.1 available)
+  synchronized 3.4.1+1 (3.4.1+2 available)
+  test_api 0.7.11 (0.7.13 available)
+  timezone 0.10.1 (0.11.1 available)
+  vector_math 2.2.0 (2.4.2 available)
+  vm_service 15.2.0 (15.3.0 available)
+  xml 6.6.1 (7.0.1 available)
+Got dependencies!
+20 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing receipt_check_screen.dart...                          
+
+warning - Unused import: 'dart:convert'. Try removing the import directive - lib\screens\receipt_check_screen.dart:1:8 - unused_import
+  error - The method 'jetbrainsMono' isn't defined for the type 'GoogleFonts'. Try correcting the name to the name of an existing method, or defining a method named 'jetbrainsMono' - lib\screens\receipt_check_screen.dart:106:42 - undefined_method
+  error - The method 'jetbrainsMono' isn't defined for the type 'GoogleFonts'. Try correcting the name to the name of an existing method, or defining a method named 'jetbrainsMono' - lib\screens\receipt_check_screen.dart:112:48 - undefined_method
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\screens\receipt_check_screen.dart:169:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\screens\receipt_check_screen.dart:170:44 - deprecated_member_use
+  error - The method 'jetbrainsMono' isn't defined for the type 'GoogleFonts'. Try correcting the name to the name of an existing method, or defining a method named 'jetbrainsMono' - lib\screens\receipt_check_screen.dart:189:46 - undefined_method
+  error - The method 'jetbrainsMono' isn't defined for the type 'GoogleFonts'. Try correcting the name to the name of an existing method, or defining a method named 'jetbrainsMono' - lib\screens\receipt_check_screen.dart:210:44 - undefined_method
+  error - The method 'jetbrainsMono' isn't defined for the type 'GoogleFonts'. Try correcting the name to the name of an existing method, or defining a method named 'jetbrainsMono' - lib\screens\receipt_check_screen.dart:237:34 - undefined_method
+  error - The method 'jetbrainsMono' isn't defined for the type 'GoogleFonts'. Try correcting the name to the name of an existing method, or defining a method named 'jetbrainsMono' - lib\screens\receipt_check_screen.dart:246:34 - undefined_method
+
+
