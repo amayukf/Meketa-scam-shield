@@ -1,7 +1,7 @@
 class AppConfig {
   static const String geminiApiKey = String.fromEnvironment(
     'GEMINI_API_KEY',
-    defaultValue: 'demo-gemini-key',
+    defaultValue: '',
   );
 
   static const String virusTotalApiKey = String.fromEnvironment(
@@ -11,7 +11,7 @@ class AppConfig {
 
   static const String oditVerifyApiKey = String.fromEnvironment(
     'ODIT_VERIFY_API_KEY',
-    defaultValue: 'demo-odit-key',
+    defaultValue: 'vk_live_NmLSmC8j2B5HyF89wztleq9Kc0rDe_jQ',
   );
 
   static const String appVersion = '1.0.0+1';

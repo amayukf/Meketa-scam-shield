@@ -63,7 +63,8 @@ class GeminiService {
   // Active production models supported by Gemini API
   static const List<String> _models = [
     'gemini-3.5-flash',
-    'gemini-3.6-flash',
+    'gemini-3.8-flash',
+    'gemini-3.1-flash-lite',
     'gemini-3.5-flash-lite',
   ];
 
@@ -71,17 +72,23 @@ class GeminiService {
       _apiKey.isNotEmpty && !_apiKey.startsWith('demo-');
 
   static const String _systemContext = '''
-You are a cybersecurity expert AI assistant in "Meketa" (መከታ), an Ethiopian mobile security application.
+You are "Meketa AI" (መከታ), a knowledgeable, friendly, and structured cybersecurity expert AI assistant for mobile users in Ethiopia.
 
-CRITICAL RESPONSE RULES:
-- Keep all answers SHORT, DIRECT, and ACTIONABLE (maximum 2 to 4 bullet points or 2-3 brief sentences).
-- Do NOT use excessive or casual emojis. Never use party, fire, laughing, or decorative emojis. At most use standard professional indicators or none at all.
-- Give immediate practical guidance:
-  * Telebirr: check real balance via *127# or Telebirr SuperApp, official hotline 994.
-  * CBE: check balance via *889# or CBE Mobile Banking, official hotline 951.
-  * Never share OTP/PIN codes with anyone.
-- Fluently support English and Amharic concisely.
-- Do not produce conversational filler, lengthy intros, or long lectures.
+YOUR INSTRUCTIONS:
+1. Provide clear, well-organized, and complete explanations. Never cut off your answer.
+2. Structure your answers cleanly using:
+   - Clear markdown section headings (e.g. ### What is a Scam?)
+   - Bullet points (* ) for key facts, red flags, and steps
+   - Numbered steps (1. , 2. ) for actionable security guidelines
+3. Practical advice for Ethiopia:
+   - Mention Telebirr (*127#, Telebirr app, official hotline 994)
+   - Mention CBE (*889#, CBE Mobile Banking, official hotline 951)
+   - Mention Bank of Abyssinia (8397) and Awash Bank (8980)
+   - Emphasize: Never share your SMS OTP or PIN with anyone under any circumstance.
+4. Language support:
+   - If user greets or asks in English, reply in professional, natural English.
+   - If user asks in Amharic, reply fluently and warmly in natural Amharic.
+   - For greetings (e.g. "hello", "hi", "selam"), greet warmly, introduce your role as Meketa AI Cyber Defense assistant, and invite them to ask about suspicious SMS, bank transfers, or security.
 ''';
 
   static Map<String, String> get _headers => {
@@ -134,8 +141,9 @@ CRITICAL RESPONSE RULES:
       },
       'contents': contents,
       'generationConfig': {
-        'temperature': 0.2,
-        'maxOutputTokens': 350,
+        'temperature': 0.4,
+        'maxOutputTokens': 1500,
+        'thinkingConfig': {'thinkingBudget': 0},
       },
     });
 
@@ -237,7 +245,8 @@ Respond ONLY with a valid JSON object in this exact format:
       ],
       'generationConfig': {
         'temperature': 0.1,
-        'maxOutputTokens': 512,
+        'maxOutputTokens': 1000,
+        'thinkingConfig': {'thinkingBudget': 0},
       },
     });
 
@@ -350,7 +359,8 @@ Explain why this is dangerous and what the user must do in 2-3 concise sentences
       ],
       'generationConfig': {
         'temperature': 0.3,
-        'maxOutputTokens': 300,
+        'maxOutputTokens': 1000,
+        'thinkingConfig': {'thinkingBudget': 0},
       },
     });
 
@@ -393,7 +403,13 @@ Explain why this is dangerous and what the user must do in 2-3 concise sentences
       final parts = content['parts'] as List?;
       if (parts == null || parts.isEmpty) return '';
 
-      return (parts[0]['text'] as String? ?? '').trim();
+      final buffer = StringBuffer();
+      for (final p in parts) {
+        if (p is Map && p.containsKey('text') && p['text'] is String) {
+          buffer.write(p['text']);
+        }
+      }
+      return buffer.toString().trim();
     } catch (e) {
       debugPrint('[GeminiService] Text extraction error: $e');
       return '';

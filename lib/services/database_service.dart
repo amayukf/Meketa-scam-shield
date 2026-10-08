@@ -112,99 +112,119 @@ class DatabaseService {
   }
 
   Future<List<ScamModel>> getAllAlerts() async {
-    final db = await database;
-    if (db == null) {
+    try {
+      final db = await database;
+      if (db == null) {
+        return List<ScamModel>.from(_inMemoryLogs);
+      }
+      final maps = await db.query('scam_logs', orderBy: 'timestamp DESC');
+      return maps.map((map) => ScamModel.fromMap(map)).toList();
+    } catch (e) {
+      debugPrint('[DatabaseService] getAllAlerts error: $e');
       return List<ScamModel>.from(_inMemoryLogs);
     }
-    final maps = await db.query('scam_logs', orderBy: 'timestamp DESC');
-    return maps.map((map) => ScamModel.fromMap(map)).toList();
   }
 
   Future<List<ScamModel>> getAlertsByFilter(String filter) async {
-    final db = await database;
-    final now = DateTime.now();
+    try {
+      final db = await database;
+      final now = DateTime.now();
 
-    if (db == null) {
+      if (db == null) {
+        switch (filter) {
+          case 'today':
+            final startOfDay = DateTime(now.year, now.month, now.day);
+            return _inMemoryLogs.where((a) => a.timestamp.isAfter(startOfDay)).toList();
+          case 'week':
+            final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+            final startOfWeekDay = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+            return _inMemoryLogs.where((a) => a.timestamp.isAfter(startOfWeekDay)).toList();
+          case 'month':
+            final startOfMonth = DateTime(now.year, now.month, 1);
+            return _inMemoryLogs.where((a) => a.timestamp.isAfter(startOfMonth)).toList();
+          case 'all':
+          default:
+            return List<ScamModel>.from(_inMemoryLogs);
+        }
+      }
+
+      String? where;
+      List<String>? whereArgs;
+
       switch (filter) {
         case 'today':
           final startOfDay = DateTime(now.year, now.month, now.day);
-          return _inMemoryLogs.where((a) => a.timestamp.isAfter(startOfDay)).toList();
+          where = 'timestamp >= ?';
+          whereArgs = [startOfDay.toIso8601String()];
+          break;
         case 'week':
           final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-          final startOfWeekDay = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-          return _inMemoryLogs.where((a) => a.timestamp.isAfter(startOfWeekDay)).toList();
+          final startOfWeekDay =
+              DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+          where = 'timestamp >= ?';
+          whereArgs = [startOfWeekDay.toIso8601String()];
+          break;
         case 'month':
           final startOfMonth = DateTime(now.year, now.month, 1);
-          return _inMemoryLogs.where((a) => a.timestamp.isAfter(startOfMonth)).toList();
+          where = 'timestamp >= ?';
+          whereArgs = [startOfMonth.toIso8601String()];
+          break;
         case 'all':
         default:
-          return List<ScamModel>.from(_inMemoryLogs);
+          where = null;
+          whereArgs = null;
       }
+
+      final maps = await db.query(
+        'scam_logs',
+        where: where,
+        whereArgs: whereArgs,
+        orderBy: 'timestamp DESC',
+      );
+      return maps.map((map) => ScamModel.fromMap(map)).toList();
+    } catch (e) {
+      debugPrint('[DatabaseService] getAlertsByFilter error: $e');
+      return List<ScamModel>.from(_inMemoryLogs);
     }
-
-    String? where;
-    List<String>? whereArgs;
-
-    switch (filter) {
-      case 'today':
-        final startOfDay = DateTime(now.year, now.month, now.day);
-        where = 'timestamp >= ?';
-        whereArgs = [startOfDay.toIso8601String()];
-        break;
-      case 'week':
-        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-        final startOfWeekDay =
-            DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-        where = 'timestamp >= ?';
-        whereArgs = [startOfWeekDay.toIso8601String()];
-        break;
-      case 'month':
-        final startOfMonth = DateTime(now.year, now.month, 1);
-        where = 'timestamp >= ?';
-        whereArgs = [startOfMonth.toIso8601String()];
-        break;
-      case 'all':
-      default:
-        where = null;
-        whereArgs = null;
-    }
-
-    final maps = await db.query(
-      'scam_logs',
-      where: where,
-      whereArgs: whereArgs,
-      orderBy: 'timestamp DESC',
-    );
-    return maps.map((map) => ScamModel.fromMap(map)).toList();
   }
 
   Future<Map<String, dynamic>> getStats() async {
-    final db = await database;
-    if (db == null) {
-      final totalScanned = _inMemoryLogs.length;
-      final scamsBlocked = _inMemoryLogs.where((a) => a.isScam).length;
+    try {
+      final db = await database;
+      if (db == null) {
+        final totalScanned = _inMemoryLogs.length;
+        final scamsBlocked = _inMemoryLogs.where((a) => a.isScam).length;
+        final blockRate =
+            totalScanned > 0 ? ((scamsBlocked / totalScanned) * 100).round() : 0;
+        return {
+          'totalScanned': totalScanned,
+          'scamsBlocked': scamsBlocked,
+          'blockRate': blockRate,
+          'familyProtected': 1,
+        };
+      }
+      final allAlerts = await db.query('scam_logs');
+      final totalScanned = allAlerts.length;
+      final scamsBlocked =
+          allAlerts.where((a) => (a['isScam'] as int) == 1).length;
       final blockRate =
           totalScanned > 0 ? ((scamsBlocked / totalScanned) * 100).round() : 0;
+
       return {
         'totalScanned': totalScanned,
         'scamsBlocked': scamsBlocked,
         'blockRate': blockRate,
         'familyProtected': 1,
       };
+    } catch (e) {
+      debugPrint('[DatabaseService] getStats error: $e');
+      return {
+        'totalScanned': 0,
+        'scamsBlocked': 0,
+        'blockRate': 0,
+        'familyProtected': 1,
+      };
     }
-    final allAlerts = await db.query('scam_logs');
-    final totalScanned = allAlerts.length;
-    final scamsBlocked =
-        allAlerts.where((a) => (a['isScam'] as int) == 1).length;
-    final blockRate =
-        totalScanned > 0 ? ((scamsBlocked / totalScanned) * 100).round() : 0;
-
-    return {
-      'totalScanned': totalScanned,
-      'scamsBlocked': scamsBlocked,
-      'blockRate': blockRate,
-      'familyProtected': 1,
-    };
   }
 
   Future<void> deleteAlert(int id) async {

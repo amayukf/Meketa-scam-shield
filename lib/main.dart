@@ -15,6 +15,8 @@ import 'screens/receipt_check_screen.dart';
 import 'screens/tools_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/scam_alert_screen.dart';
+import 'screens/splash_screen.dart';
+import 'widgets/welcome_briefing_dialog.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -49,11 +51,11 @@ class ScamShieldApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'መከታ',
+      title: 'Meketa',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
       navigatorKey: navigatorKey,
-      home: const MainNavigation(),
+      home: const SplashScreen(),
     );
   }
 }
@@ -86,6 +88,11 @@ class MainNavigationState extends State<MainNavigation> {
     super.initState();
     _checkPermissions();
     _setupSmsChannel();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        WelcomeBriefingDialog.checkAndShow(context);
+      }
+    });
   }
 
   Future<void> _checkPermissions() async {

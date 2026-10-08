@@ -27,7 +27,9 @@ class DevProxyHandler(SimpleHTTPRequestHandler):
                 content_len = int(self.headers.get('content-length', 0))
                 body = self.rfile.read(content_len) if content_len > 0 else b'{}'
                 
-                api_key = self.headers.get('x-api-key', 'demo-odit-key')
+                api_key = self.headers.get('x-api-key')
+                if not api_key or api_key == 'demo-odit-key':
+                    api_key = 'vk_live_NmLSmC8j2B5HyF89wztleq9Kc0rDe_jQ'
                 
                 req = urllib.request.Request(
                     'https://v.odit.et/api/verify',

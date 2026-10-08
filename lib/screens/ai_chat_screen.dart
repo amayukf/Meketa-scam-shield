@@ -5,6 +5,38 @@ import 'package:provider/provider.dart';
 import '../services/gemini_service.dart';
 import '../providers/scam_provider.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Data Models
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ChatMessage {
+  final bool isUser;
+  final String text;
+  final DateTime timestamp;
+  const _ChatMessage({
+    required this.isUser,
+    required this.text,
+    required this.timestamp,
+  });
+}
+
+class _QuickPrompt {
+  final String label;
+  final String prompt;
+  final IconData icon;
+  final Color color;
+  const _QuickPrompt({
+    required this.label,
+    required this.prompt,
+    required this.icon,
+    required this.color,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Screen
+// ─────────────────────────────────────────────────────────────────────────────
+
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
 
@@ -12,73 +44,90 @@ class AiChatScreen extends StatefulWidget {
   State<AiChatScreen> createState() => _AiChatScreenState();
 }
 
-class _AiChatScreenState extends State<AiChatScreen> {
+class _AiChatScreenState extends State<AiChatScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
   final List<_ChatMessage> _messages = [];
   final List<GeminiChatMessage> _history = [];
   bool _isLoading = false;
 
-  static const List<_QuickPrompt> _quickPrompts = [
+  static const _quickPrompts = [
     _QuickPrompt(
-      title: 'Fake Telebirr SMS',
-      subtitle: 'How to verify real vs fake transfer',
-      icon: Icons.account_balance_wallet_outlined,
+      label: 'Fake Telebirr SMS',
       prompt: 'How do I tell if a Telebirr transfer SMS is genuine or fake?',
+      icon: Icons.account_balance_wallet_rounded,
+      color: Color(0xFF10B981),
     ),
     _QuickPrompt(
-      title: 'CBE Account Credit',
-      subtitle: 'Check bank transaction alerts',
-      icon: Icons.account_balance_outlined,
-      prompt: 'How do I safely verify a Commercial Bank of Ethiopia (CBE) credited alert?',
+      label: 'Shared my OTP',
+      prompt:
+          'I accidentally gave my SMS verification OTP to someone. What exact steps should I take right now?',
+      icon: Icons.lock_open_rounded,
+      color: Color(0xFFEF4444),
     ),
     _QuickPrompt(
-      title: 'Shared My OTP',
-      subtitle: 'Immediate containment steps',
-      icon: Icons.security_outlined,
-      prompt: 'I accidentally gave my SMS verification OTP to someone. What exact steps should I take right now?',
+      label: 'Verify CBE credit',
+      prompt:
+          'How do I safely verify a Commercial Bank of Ethiopia (CBE) credited alert?',
+      icon: Icons.account_balance_rounded,
+      color: Color(0xFF3B82F6),
     ),
     _QuickPrompt(
-      title: 'የቴሌብር ማጭበርበር',
-      subtitle: 'በአማርኛ ማብራሪያ',
-      icon: Icons.language_outlined,
+      label: 'የቴሌብር ማጭበርበር',
       prompt: 'የቴሌብር የገንዘብ ማጭበርበር SMS መልዕክቶችን እንዴት መለየት እችላለሁ?',
+      icon: Icons.language_rounded,
+      color: Color(0xFFF59E0B),
+    ),
+    _QuickPrompt(
+      label: 'Suspicious link',
+      prompt: 'I received a link claiming to be from a bank. How do I check if it\'s safe?',
+      icon: Icons.link_rounded,
+      color: Color(0xFF8B5CF6),
+    ),
+    _QuickPrompt(
+      label: 'USSD code danger',
+      prompt: 'Someone sent me a USSD code to dial. Could it drain my airtime or forward my calls?',
+      icon: Icons.dialpad_rounded,
+      color: Color(0xFFF97316),
     ),
   ];
 
   @override
   void initState() {
     super.initState();
+    _addWelcome();
+  }
+
+  void _addWelcome() {
     _messages.add(_ChatMessage(
       isUser: false,
       text:
-          'Welcome to Meketa AI Security Assistant.\n\nI provide concise, verified guidance on Ethiopian digital scams, fake bank transfers (Telebirr, CBE, BoA), and suspicious messages. Ask any question in English or Amharic.',
-      timestamp: DateTime.now(),
+          'Hello! I\'m the **Meketa AI Security Assistant**, powered by Gemini.\n\nI can help you identify scam messages, verify suspicious bank alerts, and protect yourself from digital fraud in Ethiopia.\n\nAsk me anything in **English** or **አማርኛ**.',
+      timestamp: _epoch,
     ));
   }
+
+  static final _epoch = DateTime(2000);
 
   @override
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
-  Future<void> _sendMessage(String text) async {
-    if (text.trim().isEmpty || _isLoading) return;
-
+  Future<void> _send(String text) async {
     final msg = text.trim();
+    if (msg.isEmpty || _isLoading) return;
     _controller.clear();
 
     setState(() {
-      _messages.add(_ChatMessage(
-        isUser: true,
-        text: msg,
-        timestamp: DateTime.now(),
-      ));
+      _messages.add(_ChatMessage(isUser: true, text: msg, timestamp: DateTime.now()));
       _isLoading = true;
     });
-
     _scrollToBottom();
 
     final reply = await GeminiService.chatWithAssistant(_history, msg);
@@ -88,14 +137,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
     _history.add(GeminiChatMessage(role: 'model', text: reply));
 
     setState(() {
-      _messages.add(_ChatMessage(
-        isUser: false,
-        text: reply,
-        timestamp: DateTime.now(),
-      ));
+      _messages.add(_ChatMessage(isUser: false, text: reply, timestamp: DateTime.now()));
       _isLoading = false;
     });
-
     _scrollToBottom();
   }
 
@@ -104,61 +148,85 @@ class _AiChatScreenState extends State<AiChatScreen> {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
         );
       }
+    });
+  }
+
+  void _clearChat() {
+    setState(() {
+      _history.clear();
+      _messages.clear();
+      _addWelcome();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final lang = context.watch<ScamProvider>().currentLanguage;
-    const bgPrimary = Color(0xFF090D16);
-    const bgCard = Color(0xFF131B2E);
-    const borderColor = Color(0xFF1E293B);
+    final hint = lang == 'Amharic'
+        ? 'ጥያቄዎን ይጻፉ...'
+        : 'Ask about scams, receipts, OTP safety...';
 
     return Scaffold(
-      backgroundColor: bgPrimary,
-      appBar: AppBar(
-        backgroundColor: bgPrimary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF2563EB), Color(0xFF06B6D4)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+      backgroundColor: const Color(0xFF0A0F1E),
+      body: Column(
+        children: [
+          _buildHeader(),
+          _buildMessages(),
+          if (_isLoading) _buildTypingBubble(),
+          if (_messages.length <= 1) _buildQuickPrompts(),
+          _buildInput(hint),
+        ],
+      ),
+    );
+  }
+
+  // ── Header ────────────────────────────────────────────────────────────────
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 8, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D1422),
+        border: Border(
+          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Animated AI avatar
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
                 ),
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2563EB).withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.shield_outlined,
-                color: Colors.white,
-                size: 20,
-              ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Column(
+            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'AI Security Assistant',
-                  style: GoogleFonts.inter(
-                    fontSize: 15,
+                  'Meketa AI',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
@@ -166,8 +234,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 Row(
                   children: [
                     Container(
-                      width: 6,
-                      height: 6,
+                      width: 7,
+                      height: 7,
                       decoration: const BoxDecoration(
                         color: Color(0xFF10B981),
                         shape: BoxShape.circle,
@@ -175,10 +243,10 @@ class _AiChatScreenState extends State<AiChatScreen> {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      'Gemini 3.5 Active • Concise Mode',
-                      style: GoogleFonts.inter(
+                      'Online • Ethiopian Cyber Security Expert',
+                      style: GoogleFonts.poppins(
                         fontSize: 11,
-                        color: const Color(0xFF94A3B8),
+                        color: Colors.white38,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -186,278 +254,148 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 ),
               ],
             ),
-          ],
-        ),
-        actions: [
+          ),
           if (_messages.length > 1)
             IconButton(
-              tooltip: 'Clear conversation',
-              icon: const Icon(Icons.cleaning_services_outlined, color: Color(0xFF94A3B8), size: 20),
-              onPressed: () {
-                setState(() {
-                  _history.clear();
-                  _messages.clear();
-                  _messages.add(_ChatMessage(
-                    isUser: false,
-                    text: 'Conversation cleared. How can I assist you with Ethiopian digital security?',
-                    timestamp: DateTime.now(),
-                  ));
-                });
-              },
+              icon: const Icon(Icons.refresh_rounded, color: Colors.white38, size: 20),
+              tooltip: 'New conversation',
+              onPressed: _clearChat,
             ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: borderColor,
-          ),
+      ),
+    );
+  }
+
+  // ── Messages ───────────────────────────────────────────────────────────────
+
+  Widget _buildMessages() {
+    return Expanded(
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+        itemCount: _messages.length,
+        itemBuilder: (ctx, i) => _MessageBubble(
+          message: _messages[i],
+          onCopy: (text) {
+            Clipboard.setData(ClipboardData(text: text));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Copied to clipboard',
+                  style: GoogleFonts.poppins(fontSize: 13, color: Colors.white),
+                ),
+                backgroundColor: const Color(0xFF1E293B),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                margin: const EdgeInsets.all(16),
+              ),
+            );
+          },
         ),
       ),
-      body: Column(
+    );
+  }
+
+  // ── Typing indicator ───────────────────────────────────────────────────────
+
+  Widget _buildTypingBubble() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Row(
         children: [
-          // Security disclaimer notice
           Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: const Color(0xFF0F172A),
-            child: Row(
-              children: [
-                const Icon(Icons.verified_user_outlined, color: Color(0xFF38BDF8), size: 14),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Advisory only. Always verify bank accounts via official USSD (*889#, *127#).',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      color: const Color(0xFF94A3B8),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+              ),
+            ),
+            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 16),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF131929),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(18),
+                topRight: Radius.circular(18),
+                bottomRight: Radius.circular(18),
+                bottomLeft: Radius.circular(4),
+              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            ),
+            child: const _TypingDots(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Quick Prompts ──────────────────────────────────────────────────────────
+
+  Widget _buildQuickPrompts() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              'SUGGESTED QUESTIONS',
+              style: GoogleFonts.poppins(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: Colors.white24,
+                letterSpacing: 1.2,
+              ),
             ),
           ),
-
-          // Messages list
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                return _buildMessageItem(msg);
-              },
-            ),
-          ),
-
-          // Typing indicator
-          if (_isLoading)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          SizedBox(
+            height: 72,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _quickPrompts.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemBuilder: (ctx, i) {
+                final qp = _quickPrompts[i];
+                return GestureDetector(
+                  onTap: () => _send(qp.prompt),
+                  child: Container(
+                    width: 140,
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: bgCard,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: borderColor),
+                      color: qp.color.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: qp.color.withValues(alpha: 0.22),
+                      ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const _DotPulse(),
-                        const SizedBox(width: 4),
-                        const _DotPulse(delay: 200),
-                        const SizedBox(width: 4),
-                        const _DotPulse(delay: 400),
-                        const SizedBox(width: 10),
+                        Icon(qp.icon, color: qp.color, size: 18),
                         Text(
-                          'Analyzing...',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: const Color(0xFF94A3B8),
-                            fontWeight: FontWeight.w500,
+                          qp.label,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white70,
+                            height: 1.3,
                           ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-
-          // Quick prompt cards (visible on initial screen)
-          if (_messages.length <= 1)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'COMMON SECURITY QUERIES',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF64748B),
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 2.3,
-                    children: _quickPrompts.map((qp) {
-                      return InkWell(
-                        onTap: () => _sendMessage(qp.prompt),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: bgCard,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: borderColor),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2563EB).withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(qp.icon, color: const Color(0xFF60A5FA), size: 16),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      qp.title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.inter(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    Text(
-                                      qp.subtitle,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.inter(
-                                        fontSize: 10,
-                                        color: const Color(0xFF94A3B8),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-
-          // Input control container
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
-            decoration: const BoxDecoration(
-              color: bgPrimary,
-              border: Border(
-                top: BorderSide(color: borderColor),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF131B2E),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: const Color(0xFF334155)),
-                    ),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 14),
-                        const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF64748B), size: 18),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: _controller,
-                            style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
-                            decoration: InputDecoration(
-                              hintText: lang == 'Amharic'
-                                  ? 'ጥያቄዎን እዚህ ይጻፉ...'
-                                  : 'Ask security question or paste text...',
-                              hintStyle: GoogleFonts.inter(
-                                color: const Color(0xFF64748B),
-                                fontSize: 13,
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            maxLines: 4,
-                            minLines: 1,
-                            onSubmitted: _sendMessage,
-                          ),
-                        ),
-                        if (_controller.text.isNotEmpty)
-                          IconButton(
-                            icon: const Icon(Icons.clear, color: Color(0xFF64748B), size: 18),
-                            onPressed: () => setState(() => _controller.clear()),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                GestureDetector(
-                  onTap: _isLoading ? null : () => _sendMessage(_controller.text),
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      gradient: _isLoading
-                          ? null
-                          : const LinearGradient(
-                              colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                      color: _isLoading ? const Color(0xFF334155) : null,
-                      shape: BoxShape.circle,
-                      boxShadow: _isLoading
-                          ? null
-                          : [
-                              BoxShadow(
-                                color: const Color(0xFF2563EB).withValues(alpha: 0.35),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                    ),
-                    child: Icon(
-                      _isLoading ? Icons.hourglass_top_rounded : Icons.arrow_upward_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
         ],
@@ -465,137 +403,106 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
-  Widget _buildMessageItem(_ChatMessage msg) {
-    final isUser = msg.isUser;
-    final timeStr =
-        '${msg.timestamp.hour.toString().padLeft(2, '0')}:${msg.timestamp.minute.toString().padLeft(2, '0')}';
+  // ── Input Bar ──────────────────────────────────────────────────────────────
 
+  Widget _buildInput(String hint) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment:
-            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D1422),
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Header (Avatar + Name + Time)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (!isUser) ...[
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2563EB).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Icon(Icons.shield_outlined, size: 12, color: Color(0xFF60A5FA)),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Meketa AI',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF94A3B8),
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                timeStr,
-                style: GoogleFonts.inter(
-                  fontSize: 10,
-                  color: const Color(0xFF64748B),
-                ),
+          // Text field
+          Expanded(
+            child: Container(
+              constraints: const BoxConstraints(maxHeight: 120),
+              decoration: BoxDecoration(
+                color: const Color(0xFF131929),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
-              if (isUser) ...[
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF64748B).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Icon(Icons.person_outline, size: 12, color: Color(0xFFCBD5E1)),
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                maxLines: 5,
+                minLines: 1,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 14,
+                  height: 1.4,
                 ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 6),
-
-          // Message Card
-          Container(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * (isUser ? 0.78 : 0.88),
+                decoration: InputDecoration(
+                  hintText: hint,
+                  hintStyle: GoogleFonts.poppins(
+                    color: Colors.white24,
+                    fontSize: 13.5,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          const SizedBox(width: 8),
+
+          // Send button
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              gradient: isUser
+              gradient: (_controller.text.trim().isNotEmpty && !_isLoading)
                   ? const LinearGradient(
-                      colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                      colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     )
                   : null,
-              color: isUser ? null : const Color(0xFF131B2E),
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(16),
-                topRight: const Radius.circular(16),
-                bottomLeft: Radius.circular(isUser ? 16 : 4),
-                bottomRight: Radius.circular(isUser ? 4 : 16),
-              ),
-              border: isUser ? null : Border.all(color: const Color(0xFF1E293B)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _FormattedAiMessage(text: msg.text, isUser: isUser),
-                if (!isUser) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          Clipboard.setData(ClipboardData(text: msg.text));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Response copied to clipboard'),
-                              duration: Duration(seconds: 2),
-                              backgroundColor: Color(0xFF1E293B),
-                            ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(6),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E293B),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.copy_rounded, size: 11, color: Color(0xFF94A3B8)),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Copy',
-                                style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF94A3B8)),
-                              ),
-                            ],
-                          ),
-                        ),
+              color: (_controller.text.trim().isEmpty || _isLoading)
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : null,
+              shape: BoxShape.circle,
+              boxShadow: (_controller.text.trim().isNotEmpty && !_isLoading)
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF6366F1).withValues(alpha: 0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 3),
                       ),
-                    ],
-                  ),
-                ],
-              ],
+                    ]
+                  : null,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(22),
+                onTap: _isLoading ? null : () => _send(_controller.text),
+                child: Center(
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white54,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.arrow_upward_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                ),
+              ),
             ),
           ),
         ],
@@ -604,145 +511,315 @@ class _AiChatScreenState extends State<AiChatScreen> {
   }
 }
 
-class _FormattedAiMessage extends StatelessWidget {
-  final String text;
-  final bool isUser;
+// ─────────────────────────────────────────────────────────────────────────────
+// Message Bubble Widget
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const _FormattedAiMessage({required this.text, required this.isUser});
+class _MessageBubble extends StatelessWidget {
+  final _ChatMessage message;
+  final void Function(String) onCopy;
+
+  const _MessageBubble({required this.message, required this.onCopy});
 
   @override
   Widget build(BuildContext context) {
-    if (isUser) {
-      return SelectableText(
-        text,
-        style: GoogleFonts.inter(
-          color: Colors.white,
-          fontSize: 13.5,
-          height: 1.5,
-          fontWeight: FontWeight.w400,
-        ),
-      );
-    }
+    final isUser = message.isUser;
+    final isWelcome = message.timestamp == DateTime(2000);
+    final timeStr = isWelcome
+        ? ''
+        : '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
 
-    final rawLines = text.split('\n');
-    final List<Widget> children = [];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Row(
+        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isUser) ...[
+            // AI avatar
+            Container(
+              width: 30,
+              height: 30,
+              margin: const EdgeInsets.only(right: 8, bottom: 2),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(9),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                ),
+              ),
+              child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 15),
+            ),
+          ],
 
-    for (int i = 0; i < rawLines.length; i++) {
-      final line = rawLines[i].trim();
+          // Bubble
+          Flexible(
+            child: Column(
+              crossAxisAlignment:
+                  isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                Container(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.76,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: isUser
+                        ? const LinearGradient(
+                            colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: isUser ? null : const Color(0xFF131929),
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(18),
+                      topRight: const Radius.circular(18),
+                      bottomLeft: Radius.circular(isUser ? 18 : 4),
+                      bottomRight: Radius.circular(isUser ? 4 : 18),
+                    ),
+                    border: isUser
+                        ? null
+                        : Border.all(color: Colors.white.withValues(alpha: 0.07)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: isUser
+                      ? SelectableText(
+                          message.text,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 14,
+                            height: 1.5,
+                          ),
+                        )
+                      : _FormattedMessage(text: message.text),
+                ),
+
+                // Footer: time + copy
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (!isUser && !isWelcome)
+                      GestureDetector(
+                        onTap: () => onCopy(message.text),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.copy_rounded, size: 10, color: Colors.white24),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Copy',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 10,
+                                  color: Colors.white24,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    if (timeStr.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        timeStr,
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          color: Colors.white24,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          if (isUser)
+            Container(
+              width: 28,
+              height: 28,
+              margin: const EdgeInsets.only(left: 8, bottom: 2),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.person_rounded, color: Colors.white38, size: 16),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Formatted AI Message (markdown-like rendering)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FormattedMessage extends StatelessWidget {
+  final String text;
+  const _FormattedMessage({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final lines = text.split('\n');
+    final widgets = <Widget>[];
+
+    for (final raw in lines) {
+      final line = raw.trim();
       if (line.isEmpty) {
-        children.add(const SizedBox(height: 6));
+        widgets.add(const SizedBox(height: 6));
         continue;
       }
 
-      // Bullet points: * or - or •
+      // Horizontal divider
+      if (line == '---' || line == '***' || line == '___') {
+        widgets.add(const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Divider(color: Colors.white12, height: 1),
+        ));
+        continue;
+      }
+
+      // Section Headings: ### Header
+      if (line.startsWith('### ')) {
+        final title = line.substring(4).trim();
+        widgets.add(Padding(
+          padding: const EdgeInsets.only(top: 10, bottom: 4),
+          child: Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF818CF8),
+            ),
+          ),
+        ));
+        continue;
+      }
+
+      // Large Headings: # or ## Header
+      if (line.startsWith('## ') || line.startsWith('# ')) {
+        final title = line.replaceFirst(RegExp(r'^#+\s*'), '').trim();
+        widgets.add(Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: 6),
+          child: Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 15.5,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ));
+        continue;
+      }
+
+      // Bullet points (* , - , • )
       if (line.startsWith('* ') || line.startsWith('- ') || line.startsWith('• ')) {
         final content = line.substring(2).trim();
-        children.add(
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 6, right: 8),
+        widgets.add(Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 7, right: 8),
+                child: Container(
                   width: 5,
                   height: 5,
                   decoration: const BoxDecoration(
-                    color: Color(0xFF38BDF8),
+                    color: Color(0xFF8B5CF6),
                     shape: BoxShape.circle,
                   ),
                 ),
-                Expanded(
-                  child: _buildRichLine(content),
-                ),
-              ],
-            ),
+              ),
+              Expanded(child: _RichLine(content)),
+            ],
           ),
-        );
+        ));
+        continue;
       }
-      // Numbered items: 1. 2. 3.
-      else if (RegExp(r'^\d+\.\s+').hasMatch(line)) {
-        final match = RegExp(r'^(\d+)\.\s+(.*)').firstMatch(line);
-        final numStr = match?.group(1) ?? '1';
-        final content = match?.group(2) ?? line;
 
-        children.add(
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 2, right: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2563EB).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: const Color(0xFF2563EB).withValues(alpha: 0.4)),
-                  ),
-                  child: Text(
-                    numStr,
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF60A5FA),
-                    ),
+      // Numbered list: 1. 2. 3.
+      final numMatch = RegExp(r'^(\d+)\.\s+(.*)').firstMatch(line);
+      if (numMatch != null) {
+        final num = numMatch.group(1)!;
+        final content = numMatch.group(2)!;
+        widgets.add(Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 2, right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Text(
+                  num,
+                  style: GoogleFonts.poppins(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF818CF8),
                   ),
                 ),
-                Expanded(
-                  child: _buildRichLine(content),
-                ),
-              ],
-            ),
+              ),
+              Expanded(child: _RichLine(content)),
+            ],
           ),
-        );
+        ));
+        continue;
       }
-      // Standard line
-      else {
-        children.add(
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: _buildRichLine(line),
-          ),
-        );
-      }
+
+      // Default text line
+      widgets.add(Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: _RichLine(line),
+      ));
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: children,
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: widgets);
   }
+}
 
-  Widget _buildRichLine(String line) {
+class _RichLine extends StatelessWidget {
+  final String line;
+  const _RichLine(this.line);
+
+  @override
+  Widget build(BuildContext context) {
     final spans = <InlineSpan>[];
     final regex = RegExp(r'(\*\*[^*]+\*\*|`[^`]+`)');
-    int lastIndex = 0;
+    int last = 0;
 
-    for (final match in regex.allMatches(line)) {
-      if (match.start > lastIndex) {
+    for (final m in regex.allMatches(line)) {
+      if (m.start > last) {
         spans.add(TextSpan(
-          text: line.substring(lastIndex, match.start),
-          style: GoogleFonts.inter(
-            color: const Color(0xFFE2E8F0),
-            fontSize: 13.5,
-            height: 1.5,
-          ),
+          text: line.substring(last, m.start),
+          style: _base,
         ));
       }
-
-      final matchedText = match.group(0)!;
-      if (matchedText.startsWith('**') && matchedText.endsWith('**')) {
+      final t = m.group(0)!;
+      if (t.startsWith('**')) {
         spans.add(TextSpan(
-          text: matchedText.substring(2, matchedText.length - 2),
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-            fontSize: 13.5,
-            height: 1.5,
-          ),
+          text: t.substring(2, t.length - 2),
+          style: _base.copyWith(fontWeight: FontWeight.w700, color: Colors.white),
         ));
-      } else if (matchedText.startsWith('`') && matchedText.endsWith('`')) {
+      } else {
         spans.add(WidgetSpan(
           alignment: PlaceholderAlignment.middle,
           child: Container(
@@ -751,12 +828,12 @@ class _FormattedAiMessage extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFF1E293B),
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: const Color(0xFF334155)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             ),
             child: Text(
-              matchedText.substring(1, matchedText.length - 1),
+              t.substring(1, t.length - 1),
               style: GoogleFonts.robotoMono(
-                color: const Color(0xFF38BDF8),
+                color: const Color(0xFF818CF8),
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -764,77 +841,45 @@ class _FormattedAiMessage extends StatelessWidget {
           ),
         ));
       }
-
-      lastIndex = match.end;
+      last = m.end;
     }
 
-    if (lastIndex < line.length) {
-      spans.add(TextSpan(
-        text: line.substring(lastIndex),
-        style: GoogleFonts.inter(
-          color: const Color(0xFFE2E8F0),
-          fontSize: 13.5,
-          height: 1.5,
-        ),
-      ));
+    if (last < line.length) {
+      spans.add(TextSpan(text: line.substring(last), style: _base));
     }
 
-    return SelectableText.rich(
-      TextSpan(children: spans),
-    );
+    return SelectableText.rich(TextSpan(children: spans));
   }
+
+  static final _base = GoogleFonts.poppins(
+    color: const Color(0xFFCBD5E1),
+    fontSize: 13.5,
+    height: 1.55,
+  );
 }
 
-class _ChatMessage {
-  final bool isUser;
-  final String text;
-  final DateTime timestamp;
+// ─────────────────────────────────────────────────────────────────────────────
+// Animated Typing Dots
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const _ChatMessage({
-    required this.isUser,
-    required this.text,
-    required this.timestamp,
-  });
-}
-
-class _QuickPrompt {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final String prompt;
-
-  const _QuickPrompt({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.prompt,
-  });
-}
-
-class _DotPulse extends StatefulWidget {
-  final int delay;
-  const _DotPulse({this.delay = 0});
+class _TypingDots extends StatefulWidget {
+  const _TypingDots();
 
   @override
-  State<_DotPulse> createState() => _DotPulseState();
+  State<_TypingDots> createState() => _TypingDotsState();
 }
 
-class _DotPulseState extends State<_DotPulse>
+class _TypingDotsState extends State<_TypingDots>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
-  late Animation<double> _anim;
 
   @override
   void initState() {
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    Future.delayed(Duration(milliseconds: widget.delay), () {
-      if (mounted) _ctrl.repeat(reverse: true);
-    });
-    _anim = Tween<double>(begin: 0.3, end: 1.0).animate(_ctrl);
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
   }
 
   @override
@@ -845,16 +890,26 @@ class _DotPulseState extends State<_DotPulse>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _anim,
-      child: Container(
-        width: 6,
-        height: 6,
-        decoration: const BoxDecoration(
-          color: Color(0xFF38BDF8),
-          shape: BoxShape.circle,
-        ),
-      ),
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, child) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (i) {
+            final phase = ((_ctrl.value * 3) - i).clamp(0.0, 1.0);
+            final opacity = (phase < 0.5 ? phase * 2 : (1 - phase) * 2).clamp(0.2, 1.0);
+            return Container(
+              width: 7,
+              height: 7,
+              margin: const EdgeInsets.symmetric(horizontal: 2.5),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF8B5CF6).withValues(alpha: opacity),
+              ),
+            );
+          }),
+        );
+      },
     );
   }
 }

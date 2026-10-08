@@ -6,6 +6,8 @@ import '../utils/app_theme.dart';
 import '../utils/app_translations.dart';
 import '../providers/scam_provider.dart';
 import '../services/gemini_service.dart';
+import '../services/xai_service.dart';
+import '../widgets/emergency_hotlines_sheet.dart';
 
 class ScamAlertScreen extends StatefulWidget {
   final ScamModel alert;
@@ -138,6 +140,214 @@ class _ScamAlertScreenState extends State<ScamAlertScreen> {
       ),
     );
   }
+
+  void _showXaiBreakdown(BuildContext context, String lang) {
+    final xai = XaiService.analyze(alert);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0F172A),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.75,
+        maxChildSize: 0.95,
+        minChildSize: 0.4,
+        builder: (_, ctrl) => SingleChildScrollView(
+          controller: ctrl,
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.analytics_rounded, color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          lang == 'Amharic' ? 'የስጋት ምክንያት ትንተና (XAI)' : 'Explainable AI (XAI) Attribution',
+                          style: GoogleFonts.poppins(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          'Meketa Transparent Heuristic Reasoning Engine',
+                          style: GoogleFonts.poppins(fontSize: 11, color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('RISK SCORE', style: GoogleFonts.poppins(fontSize: 10, color: Colors.white60, fontWeight: FontWeight.w600)),
+                        Text('${xai.finalConfidenceScore}%', style: GoogleFonts.poppins(fontSize: 22, color: Colors.white, fontWeight: FontWeight.w800)),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: alert.isScam ? AppColors.danger.withValues(alpha: 0.2) : AppColors.safe.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        alert.classification,
+                        style: TextStyle(
+                          color: alert.isScam ? AppColors.danger : AppColors.safe,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'MATHEMATICAL FEATURE CONTRIBUTIONS',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white60,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              const SizedBox(height: 10),
+              ...xai.factors.map((f) => Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: f.isNegative ? AppColors.danger.withValues(alpha: 0.3) : AppColors.safe.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: f.isNegative ? AppColors.danger.withValues(alpha: 0.15) : AppColors.safe.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        f.contributionScore > 0 ? '+${f.contributionScore}%' : '${f.contributionScore}%',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: f.isNegative ? AppColors.danger : AppColors.safe,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            f.featureName,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            f.explanation,
+                            style: GoogleFonts.poppins(fontSize: 11, color: Colors.white70, height: 1.4),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+              const SizedBox(height: 16),
+              // Counterfactual Explanation Card
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF312E81).withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.4)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.lightbulb_outline_rounded, color: Color(0xFFA5B4FC), size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          lang == 'Amharic' ? 'ተቃራኒ እውነታ ትንተና (Counterfactual XAI)' : 'Counterfactual Explanation',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFFA5B4FC),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      xai.counterfactualExplanation,
+                      style: GoogleFonts.poppins(fontSize: 12, color: Colors.white, height: 1.5),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -493,6 +703,50 @@ class _ScamAlertScreenState extends State<ScamAlertScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // 🔬 Explainable AI (XAI) Attribution Action
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showXaiBreakdown(context, lang),
+                      icon: const Icon(Icons.analytics_outlined, size: 17),
+                      label: Text(
+                        lang == 'Amharic' ? '🔬 የ AI ትንተና ዝርዝር (XAI Breakdown)' : '🔬 Explainable AI (XAI) Breakdown',
+                        style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF6366F1),
+                        side: const BorderSide(color: Color(0xFF6366F1)),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // 📞 Emergency Hotlines (Call Bank / Telebirr)
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => EmergencyHotlinesSheet.show(context, lang),
+                      icon: const Icon(Icons.phone_in_talk_rounded, size: 17),
+                      label: Text(
+                        lang == 'Amharic'
+                            ? '📞 የድንገተኛ ባንክ/ቴሌብር ስልክ (Hotline)'
+                            : '📞 Call Bank / Telebirr Hotline',
+                        style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFEF4444),
+                        side: const BorderSide(color: Color(0xFFEF4444)),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                     ),
                   ),

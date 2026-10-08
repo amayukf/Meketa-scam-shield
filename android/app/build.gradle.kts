@@ -46,6 +46,8 @@ android {
 
     buildTypes {
         release {
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -53,9 +55,9 @@ android {
             if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
             } else {
-                // Require production keystore for release builds.
-                // Do NOT fall back to debug signing key.
-                signingConfig = null
+                // Fall back to debug signing for direct APK installs
+                // (not for Play Store submissions — use a release keystore for that)
+                signingConfig = signingConfigs.getByName("debug")
             }
         }
     }

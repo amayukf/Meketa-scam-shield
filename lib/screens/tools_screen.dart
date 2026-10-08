@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/virustotal_service.dart';
+import '../services/ussd_analyzer_service.dart';
 import '../widgets/education_hub_widget.dart';
+import '../widgets/scam_simulator_widget.dart';
 import '../utils/app_theme.dart';
 import 'ai_chat_screen.dart';
 
@@ -16,19 +18,22 @@ class _ToolsScreenState extends State<ToolsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _urlController = TextEditingController();
+  final TextEditingController _ussdController = TextEditingController();
   LinkScanResult? _scanResult;
+  UssdScanResult? _ussdResult;
   bool _isScanning = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _urlController.dispose();
+    _ussdController.dispose();
     super.dispose();
   }
 
@@ -49,6 +54,18 @@ class _ToolsScreenState extends State<ToolsScreen>
     });
   }
 
+  void _handleUssdScan([String? code]) {
+    final target = code ?? _ussdController.text.trim();
+    if (code != null) {
+      _ussdController.text = code;
+    }
+    if (target.isEmpty) return;
+
+    setState(() {
+      _ussdResult = UssdAnalyzerService.scan(target);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,9 +81,11 @@ class _ToolsScreenState extends State<ToolsScreen>
         ),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
           labelColor: AppColors.primary,
           unselectedLabelColor: AppColors.textSecondary,
           indicatorColor: AppColors.primary,
+          tabAlignment: TabAlignment.start,
           labelStyle: GoogleFonts.poppins(
             fontSize: 13,
             fontWeight: FontWeight.w600,
@@ -75,6 +94,14 @@ class _ToolsScreenState extends State<ToolsScreen>
             Tab(
               icon: Icon(Icons.link_rounded, size: 20),
               text: 'Link Checker',
+            ),
+            Tab(
+              icon: Icon(Icons.dialpad_rounded, size: 20),
+              text: 'USSD Trap',
+            ),
+            Tab(
+              icon: Icon(Icons.psychology_rounded, size: 20),
+              text: 'Scam Simulator',
             ),
             Tab(
               icon: Icon(Icons.school_rounded, size: 20),
@@ -298,10 +325,263 @@ class _ToolsScreenState extends State<ToolsScreen>
             ),
           ),
 
-          // Tab 2: Education Hub
+          // Tab 2: USSD Code & Forwarding Interceptor
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Banner
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.dialpad_rounded,
+                              color: Color(0xFFD97706), size: 22),
+                          const SizedBox(width: 10),
+                          Text(
+                            'USSD & Telephony Security Trap',
+                            style: GoogleFonts.poppins(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Detect concealed airtime-draining codes (*804*...), SIM call-forwarding traps (*21*...), and OTP hijacking attempts.',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: _ussdController,
+                        style: GoogleFonts.robotoMono(fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: 'Enter code or paste text (e.g., *804*0911...*50#)',
+                          hintStyle: TextStyle(
+                            color: AppColors.textSecondary.withValues(alpha: 0.6),
+                          ),
+                          filled: true,
+                          fillColor: AppColors.background,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.divider),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Quick Test Chips
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          ActionChip(
+                            label: const Text('*804*0911223344*50# (Airtime Drain)',
+                                style: TextStyle(fontSize: 11)),
+                            onPressed: () => _handleUssdScan('*804*0911223344*50#'),
+                          ),
+                          ActionChip(
+                            label: const Text('*21*0911223344# (OTP Hijack)',
+                                style: TextStyle(fontSize: 11)),
+                            onPressed: () => _handleUssdScan('*21*0911223344#'),
+                          ),
+                          ActionChip(
+                            label: const Text('##21# (Cancel Forwarding)',
+                                style: TextStyle(fontSize: 11)),
+                            onPressed: () => _handleUssdScan('##21#'),
+                          ),
+                          ActionChip(
+                            label: const Text('*804# (Official Balance)',
+                                style: TextStyle(fontSize: 11)),
+                            onPressed: () => _handleUssdScan('*804#'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _handleUssdScan(),
+                          icon: const Icon(Icons.shield_outlined, size: 18),
+                          label: Text(
+                            'Inspect Telephony Code',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFD97706),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Scan Results
+                if (_ussdResult != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _ussdResult!.isDangerous
+                            ? AppColors.danger.withValues(alpha: 0.5)
+                            : AppColors.safe.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              _ussdResult!.isDangerous
+                                  ? Icons.dangerous_rounded
+                                  : Icons.verified_user_rounded,
+                              color: _ussdResult!.isDangerous
+                                  ? AppColors.danger
+                                  : AppColors.safe,
+                              size: 28,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _ussdResult!.threatCategory,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: _ussdResult!.isDangerous
+                                          ? AppColors.danger
+                                          : AppColors.safe,
+                                    ),
+                                  ),
+                                  Text(
+                                    _ussdResult!.rawCode,
+                                    style: GoogleFonts.robotoMono(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 20),
+                        Text(
+                          _ussdResult!.explanationEn,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textPrimary,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _ussdResult!.explanationAm,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1E293B),
+                            height: 1.4,
+                          ),
+                        ),
+                        if (_ussdResult!.extractedTargetNumber != null) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.background,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Target Destination: ${_ussdResult!.extractedTargetNumber} ${_ussdResult!.extractedAmount != null ? "• Amount: ${_ussdResult!.extractedAmount}" : ""}',
+                              style: GoogleFonts.robotoMono(fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: _ussdResult!.isDangerous
+                                ? const Color(0xFFFEF2F2)
+                                : const Color(0xFFF0FDF4),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _ussdResult!.isDangerous ? Icons.info_outline : Icons.check_circle_outline,
+                                size: 16,
+                                color: _ussdResult!.isDangerous ? AppColors.danger : AppColors.safe,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _ussdResult!.mitigation,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: _ussdResult!.isDangerous ? AppColors.danger : AppColors.safe,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          // Tab 3: Scam Simulator & Defense Sandbox
+          const ScamSimulatorWidget(),
+
+          // Tab 4: Education Hub
           const EducationHubWidget(),
 
-          // Tab 3: AI Security Assistant
+          // Tab 5: AI Security Assistant
           const AiChatScreen(),
         ],
       ),

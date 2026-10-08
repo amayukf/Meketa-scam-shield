@@ -45,12 +45,16 @@ class ScamProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    await _loadPersistedSettings();
-    await loadAlerts();
-    await loadStats();
-
-    _isLoading = false;
-    notifyListeners();
+    try {
+      await _loadPersistedSettings();
+      await loadAlerts();
+      await loadStats();
+    } catch (e) {
+      debugPrint('[ScamProvider] Init error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _loadPersistedSettings() async {

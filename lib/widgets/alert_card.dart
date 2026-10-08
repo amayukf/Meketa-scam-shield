@@ -259,6 +259,7 @@ class StatCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: iconColor, size: 22),
           const SizedBox(height: 8),
@@ -275,17 +276,15 @@ class StatCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: iconColor.withValues(alpha: 0.75),
-                height: 1.3,
-              ),
+          Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: iconColor.withValues(alpha: 0.75),
+              height: 1.3,
             ),
           ),
         ],

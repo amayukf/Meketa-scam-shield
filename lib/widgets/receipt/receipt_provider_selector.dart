@@ -18,6 +18,7 @@ class ReceiptProviderSelector extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: providers.map((p) {
           final isSelected = p['id'] == selectedProvider;
           final color = p['color'] as Color;
@@ -25,19 +26,28 @@ class ReceiptProviderSelector extends StatelessWidget {
 
           return Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: Semantics(
-              button: true,
-              label: 'Select provider ${p['name']}',
-              child: Tooltip(
-                message: 'Select ${p['name']}',
-                child: FilterChip(
-                  selected: isSelected,
-                  label: Row(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => onSelected(p['id'] as String),
+                borderRadius: BorderRadius.circular(10),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? color : lightColor,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected ? color : color.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         p['icon'] as IconData,
-                        size: 16,
+                        size: 15,
                         color: isSelected ? Colors.white : color,
                       ),
                       const SizedBox(width: 6),
@@ -51,19 +61,6 @@ class ReceiptProviderSelector extends StatelessWidget {
                       ),
                     ],
                   ),
-                  backgroundColor: lightColor,
-                  selectedColor: color,
-                  checkmarkColor: Colors.white,
-                  showCheckmark: false,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(
-                      color: isSelected ? color : color.withValues(alpha: 0.2),
-                      width: 1,
-                    ),
-                  ),
-                  onSelected: (_) => onSelected(p['id'] as String),
                 ),
               ),
             ),

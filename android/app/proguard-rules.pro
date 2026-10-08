@@ -28,3 +28,12 @@
 # 5. Preserve line numbers and source attributes for crash stacktraces
 -renamesourcefileattribute SourceFile
 -keepattributes SourceFile,LineNumberTable,Signature,*Annotation*
+
+# 6. Suppress Google Play Core split/deferred component warnings
+#    These classes are referenced by Flutter engine but not needed for
+#    direct APK (non-Play-Store) distribution builds.
+-dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
+-dontwarn com.google.android.play.core.**
+-dontwarn io.flutter.embedding.engine.deferredcomponents.**

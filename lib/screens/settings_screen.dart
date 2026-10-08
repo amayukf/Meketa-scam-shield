@@ -5,6 +5,7 @@ import '../providers/scam_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/app_translations.dart';
 import 'receipt_check_screen.dart';
+import '../widgets/welcome_briefing_dialog.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -190,6 +191,14 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 );
               },
+            ),
+            _SettingsTile(
+              icon: Icons.play_circle_outline_rounded,
+              title: 'Re-watch App Introduction',
+              subtitle: 'View the Meketa onboarding tutorial again',
+              trailing: const Icon(Icons.chevron_right_rounded,
+                  color: AppColors.textSecondary),
+              onTap: () => WelcomeBriefingDialog.show(context),
             ),
           ],
         ),
