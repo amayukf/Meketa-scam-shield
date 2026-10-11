@@ -22,7 +22,7 @@ class ScamProvider extends ChangeNotifier {
   bool _isLoading = true;
   bool _notificationsEnabled = true;
   bool _autoScanEnabled = true;
-  bool _allowCloudAiAnalysis = true; // Privacy toggle
+  bool _allowCloudAiAnalysis = false; // Privacy-first default: opt-in only
 
   List<ScamModel> get alerts => _alerts;
   List<ScamModel> get filteredAlerts => _filteredAlerts;
@@ -63,7 +63,7 @@ class ScamProvider extends ChangeNotifier {
       _currentLanguage = prefs.getString('current_language') ?? 'English';
       _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
       _autoScanEnabled = prefs.getBool('auto_scan_enabled') ?? true;
-      _allowCloudAiAnalysis = prefs.getBool('allow_cloud_ai_analysis') ?? true;
+      _allowCloudAiAnalysis = prefs.getBool('allow_cloud_ai_analysis') ?? false;
     } catch (e) {
       debugPrint('[ScamProvider] Persisted load error: $e');
     }

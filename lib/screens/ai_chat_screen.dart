@@ -119,9 +119,105 @@ class _AiChatScreenState extends State<AiChatScreen>
     super.dispose();
   }
 
+  Future<bool> _showCloudConsentDialog() async {
+    final lang = context.read<ScamProvider>().currentLanguage;
+    final isAmharic = lang == 'Amharic';
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF131D31),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.shield_rounded, color: Color(0xFF3B82F6), size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                isAmharic ? 'የክላውድ AI ፈቃድ' : 'Cloud AI Consent',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isAmharic
+                  ? 'መከታ AI ከ Google Gemini ጋር ተገናኝቶ ለጥያቄዎችዎ መልስ ይሰጣል።\n\n• የጽሑፍ ጥያቄዎ ወደ Google Cloud AI ይላካል\n• የግል SMS ወይም ምስጢራዊ መረጃ አይቀመጥም\n• ይህን ፈቃድ በማንኛውም ጊዜ በቅንብሮች ማጥፋት ይችላሉ'
+                  : 'Meketa AI connects to Google Gemini services to provide intelligent cybersecurity advice.\n\n• Your query text will be transmitted to Google Gemini AI\n• Personal SMS messages and credentials are never stored or sold\n• You can toggle this off anytime in Settings',
+              style: GoogleFonts.inter(
+                color: const Color(0xFFCBD5E1),
+                fontSize: 13.5,
+                height: 1.55,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              isAmharic ? 'ይቅር' : 'Keep Offline',
+              style: GoogleFonts.poppins(color: const Color(0xFF94A3B8), fontWeight: FontWeight.w600),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3B82F6),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text(
+              isAmharic ? 'እፈቅዳለሁ' : 'Consent & Continue',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return result ?? false;
+  }
+
   Future<void> _send(String text) async {
     final msg = text.trim();
     if (msg.isEmpty || _isLoading) return;
+
+    final provider = context.read<ScamProvider>();
+    if (!provider.allowCloudAiAnalysis) {
+      final consented = await _showCloudConsentDialog();
+      if (!consented) {
+        setState(() {
+          _messages.add(_ChatMessage(
+            isUser: false,
+            text: provider.currentLanguage == 'Amharic'
+                ? '🔒 **የክላውድ AI አገልግሎት ተዘግቷል**\n\nየእርስዎን ግላዊነት ለመጠበቅ ክላውድ AI በነባሪነት ጠፍቷል። የAI ረዳቱን ለመጠቀም ከፈለጉ በቅንብሮች ውስጥ ማብራት ይችላሉ።'
+                : '🔒 **Cloud AI is disabled**\n\nTo preserve your privacy, external cloud AI queries are off by default. You can enable Cloud AI in Settings or grant consent when prompted.',
+            timestamp: DateTime.now(),
+          ));
+        });
+        _scrollToBottom();
+        return;
+      }
+      await provider.setAllowCloudAiAnalysis(true);
+    }
+
     _controller.clear();
 
     setState(() {

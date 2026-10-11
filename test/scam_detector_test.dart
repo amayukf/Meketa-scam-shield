@@ -211,4 +211,87 @@ void main() {
       expect(res.verdictState != VerdictState.safe, true);
     });
   });
+
+  group('Multilingual Real-World Examples (Amharic & Afaan Oromoo)', () {
+    test('Afaan Oromoo friendly conversation is SAFE', () async {
+      final res = await ScamDetector.analyze(
+        'Akkam jirta obboleessako? Har\'a wal agarra?',
+        '0911223344',
+      );
+      expect(res.isScam, isFalse);
+      expect(res.confidence, lessThan(30));
+    });
+
+    test('Afaan Oromoo clean account sharing is SAFE', () async {
+      final res = await ScamDetector.analyze(
+        'Herrega baankii: 100012345678 Tolasaa',
+        '0912345678',
+      );
+      expect(res.isScam, isFalse);
+      expect(res.confidence, lessThan(40));
+    });
+
+    test('Afaan Oromoo OTP theft demand is HIGH_RISK', () async {
+      final res = await ScamDetector.analyze(
+        'Koodii OTP siif dhufe dafii ergi badhaasa kee fudhachuuf.',
+        '0922334455',
+      );
+      expect(res.isScam, isTrue);
+      expect(res.confidence, greaterThanOrEqualTo(70));
+    });
+
+    test('Afaan Oromoo fake lottery with fee demand is HIGH_RISK', () async {
+      final res = await ScamDetector.analyze(
+        'Badhaasa qarshii 50,000 mooteetta! Kaffaltii galmee qarshii 300 dursii kaffali.',
+        '0911001122',
+      );
+      expect(res.isScam, isTrue);
+      expect(res.confidence, greaterThanOrEqualTo(70));
+    });
+
+    test('Afaan Oromoo fake refund claim is SUSPICIOUS or HIGH_RISK', () async {
+      final res = await ScamDetector.analyze(
+        'Dogoggoraan qarshii 2000 siif ergame, maaloo qarshii deebisi.',
+        '0933445566',
+      );
+      expect(res.confidence, greaterThanOrEqualTo(40));
+    });
+
+    test('Amharic OTP theft attempt is HIGH_RISK', () async {
+      final res = await ScamDetector.analyze(
+        'የደረሰዎትን የማረጋገጫ ሚስጥር ቁጥር (OTP) ወደ 0911223344 ይላኩ።',
+        '0911998877',
+      );
+      expect(res.isScam, isTrue);
+      expect(res.confidence, greaterThanOrEqualTo(70));
+    });
+
+    test('Amharic fake lottery with registration fee is HIGH_RISK', () async {
+      final res = await ScamDetector.analyze(
+        'እንኳን ደስ አለዎት! የ 100,000 ብር የሽልማት አሸናፊ ሆነዋል! የ 500 ብር የምዝገባ ክፍያ ይክፈሉ።',
+        '0912112233',
+      );
+      expect(res.isScam, isTrue);
+      expect(res.confidence, greaterThanOrEqualTo(70));
+    });
+
+    test('Amharic fake bank credit alert from personal phone is HIGH_RISK impersonation', () async {
+      final res = await ScamDetector.analyze(
+        'የኢትዮጵያ ንግድ ባንክ: በ 1000123456 ሒሳብዎ 15,000 ብር ገቢ ሆኗል። ቀሪ ሒሳብ 18,000 ብር።',
+        '0911334455',
+      );
+      expect(res.isScam, isTrue);
+      expect(res.confidence, greaterThanOrEqualTo(75));
+    });
+
+    test('Official Safaricom M-PESA transaction notification is SAFE', () async {
+      final res = await ScamDetector.analyze(
+        'Dear customer, you have received ETB 1,000.00 from Abebe. Txn ID: MP241010. Balance is ETB 3,500.00',
+        '733',
+      );
+      expect(res.isScam, isFalse);
+      expect(res.confidence, lessThan(20));
+      expect(res.classification, equals('LIKELY_OFFICIAL'));
+    });
+  });
 }

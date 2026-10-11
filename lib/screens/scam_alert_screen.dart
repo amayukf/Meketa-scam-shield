@@ -24,6 +24,56 @@ class _ScamAlertScreenState extends State<ScamAlertScreen> {
   ScamModel get alert => widget.alert;
 
   Future<void> _showAiExplanation(BuildContext context, String lang, bool allowCloudAi) async {
+    bool canProceed = allowCloudAi;
+
+    if (!canProceed) {
+      final isAmharic = lang == 'Amharic';
+      final consented = await showDialog<bool>(
+        context: context,
+        builder: (dialogCtx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              const Icon(Icons.shield_rounded, color: AppColors.primary, size: 24),
+              const SizedBox(width: 10),
+              Text(
+                isAmharic ? 'የክላውድ AI ፈቃድ' : 'Enable Cloud AI?',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18),
+              ),
+            ],
+          ),
+          content: Text(
+            isAmharic
+                ? 'የዚህን መልዕክት ዝርዝር ማብራሪያ ለማግኘት የይዘቱ አጭር ክፍል በ Google Gemini AI ይመረመራል። መቀጠል ይፈልጋሉ?'
+                : 'To generate a comprehensive plain-language explanation, this alert snippet will be analyzed by Google Gemini AI. Would you like to enable Cloud AI for this explanation?',
+            style: GoogleFonts.inter(fontSize: 14, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(false),
+              child: Text(isAmharic ? 'ይቅር' : 'Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(isAmharic ? 'እፈቅዳለሁ' : 'Allow & Explain'),
+            ),
+          ],
+        ),
+      );
+
+      if (consented == true && context.mounted) {
+        await context.read<ScamProvider>().setAllowCloudAiAnalysis(true);
+        canProceed = true;
+      } else {
+        return;
+      }
+    }
+
     setState(() => _isExplaining = true);
 
     final explanation = await GeminiService.explainAlert(
@@ -32,7 +82,7 @@ class _ScamAlertScreenState extends State<ScamAlertScreen> {
       detectedFlags: alert.flags,
       confidence: alert.confidence,
       language: lang,
-      allowCloudAnalysis: allowCloudAi,
+      allowCloudAnalysis: canProceed,
     );
 
     if (!mounted) return;

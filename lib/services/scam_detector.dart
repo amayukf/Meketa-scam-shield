@@ -40,43 +40,60 @@ class ScamDetector {
   // Layer 4: Credential & OTP Theft Detector with Disclaimer Protection
   static bool _isOtpTheftDemand(String message) {
     final lower = message.toLowerCase();
-    if (lower.contains('never share') ||
+
+    // Check for standard security disclaimer advice ("do not share", "never share", etc.)
+    final hasSecurityDisclaimer = lower.contains('never share') ||
         lower.contains('do not share') ||
         lower.contains("don't share") ||
+        lower.contains('ለማንም እንዳያካፍሉ') ||
+        lower.contains('ለማንም አትስጡ') ||
         lower.contains('ለማንም') ||
-        lower.contains('እንዳያካፍሉ')) {
+        lower.contains('hin qoodinaa');
+
+    // If it contains a disclaimer, it's only a theft attempt if an attacker explicitly asks to forward/send to a phone number
+    if (hasSecurityDisclaimer &&
+        !lower.contains('ወደ 09') &&
+        !lower.contains('ወደ 07') &&
+        !lower.contains('to 09') &&
+        !lower.contains('to 07') &&
+        !lower.contains('to +251')) {
       return false;
     }
 
-    return RegExp(
-      r'(send|share|reply|provide|give|forward|enter|tell|ላክ|ላኩ|ስጥ|ስጡ|አስገባ|ይላኩ|ergi|kenn)\s+.*(otp|pin\b|password|code|verification|ኮድ|የይለፍ\s*ቃል|ኦቲፒ|koodii|passwordii)',
-      caseSensitive: false,
-    ).hasMatch(message);
+    const demandVerbs = r'(send|reply\s+with|provide|give|forward|enter|submit|tell\s+me|ላክ|ላኩ|ላክልኝ|ላኩልኝ|ስጥ|ስጡ|ስጠኝ|ስጡኝ|አስገባ|አስገቡ|ይላኩ|ይስጡ|ergi|ergaa|kenni|kennaa|galchi|galchaa)';
+    const credNouns = r'(otp|pin\b|password|passcode|code|verification|ኮድ|የይለፍ\s*ቃል|ኦቲፒ|ሚስጥር\s*ቁጥር|የማረጋገጫ\s*ኮድ|koodii|passwordii)';
+
+    // SVO (English): "Send your OTP..."
+    final svo = RegExp('$demandVerbs\\s+.*$credNouns', caseSensitive: false).hasMatch(message);
+    // SOV (Amharic & Afaan Oromoo): "OTP ... ይላኩ" or "koodii OTP ... ergi"
+    final sov = RegExp('$credNouns\\s+.*$demandVerbs', caseSensitive: false).hasMatch(message);
+
+    return svo || sov;
   }
 
   static final RegExp _otpDeliveryPattern = RegExp(
-    r'(your\s+(otp|code|verification\s+code)\s+is|is\s+your\s+(otp|verification\s+code)|የማረጋገጫ\s+ኮድዎ|koodiin\s+keessan|do\s+not\s+share|never\s+share|ለማንም\s+እንዳያካፍሉ)',
+    r'(your\s+(otp|code|verification\s+code)\s+is|is\s+your\s+(otp|verification\s+code)|የማረጋገጫ\s+ኮድዎ|koodiin\s+keessan|do\s+not\s+share|never\s+share|ለማንም\s+እንዳያካፍሉ|hin\s+qoodinaa)',
     caseSensitive: false,
   );
 
-  // Layer 5: Social Engineering Patterns
+  // Layer 5: Social Engineering Patterns (Multilingual: EN, AM, OM)
   static final RegExp _fakeRefundPattern = RegExp(
-    r'(by\s+mistake|accidentally|wrong\s+transfer|በስህተት|ተሳስቼ|dogoggoraan)',
+    r'(by\s+mistake|accidentally|wrong\s+transfer|erroneously\s+sent|sent\s+money\s+by\s+mistake|በስህተት|ተሳስቼ|ተሳስቼ\s*ነው|የተሳሳተ\s*ዝውውር|ገንዘቡን\s*መልስ|መልስልኝ|መልሱልኝ|dogoggoraan|dogoggoraan\s*siif\s*ergame|qarshii\s*deebisi)',
     caseSensitive: false,
   );
 
   static final RegExp _fakePrizePattern = RegExp(
-    r'(won|winner|reward|congratulations|congrats|ተሸልሟል|እድለኛ|ተመርጠዋል|badhaasa|badhaafamte)',
+    r'(won\b|winner|selected\s+for|reward\b|lottery|congratulations|congrats|claim\s+your\s+prize|ተሸልሟል|ተሸልመዋል|እድለኛ|የሽልማት\s*አሸናፊ|ተመርጠዋል|badhaasa|badhaafamte|carraa\s*guddaa|moote|badhaafamtaniittu)',
     caseSensitive: false,
   );
 
   static final RegExp _feeDemandPattern = RegExp(
-    r'(pay|fee|registration\s+fee|processing\s+fee|charge|ክፈል|ክፈሉ|ክፍያ|kaffali|kaffaltii)',
+    r'(pay\b|fee\b|registration\s+fee|processing\s+fee|service\s+charge|advance\s+payment|charge\b|ክፈል|ክፈሉ|ክፍያ|የምዝገባ\s*ክፍያ|ቅድመ\s*ክፍያ|kaffali|kaffaltii|dursii\s*kaffali)',
     caseSensitive: false,
   );
 
   static final RegExp _urgencyThreatPattern = RegExp(
-    r'(urgent|immediately|act\s+now|blocked|closed|suspended|restricted|አስቸኳይ|ታግደዋል|ይዘጋል|ይቋረጣል|ariifachiisaa)',
+    r'(urgent\b|immediately|act\s+now|blocked\b|closed\b|suspended\b|restricted\b|within\s+24\s+hours|አስቸኳይ|ታግደዋል|ይዘጋል|ይቋረጣል|ይታገዳል|አሁኑኑ|ariifachiisaa|herregni\s*kee\s*ni\s*cufama|amma\s*raawwadhu)',
     caseSensitive: false,
   );
 
@@ -93,23 +110,28 @@ class ScamDetector {
   );
 
   static final RegExp _phishingCloneDomainPattern = RegExp(
-    r'(telebirr|cbe|combank|ethiotelecom|ethio-telecom|bankofabyssinia|dashen|awash)[a-zA-Z0-9\-]*\.(xyz|top|online|site|club|work|biz|info|cc)',
+    r'(telebirr|cbe|combank|ethiotelecom|ethio-telecom|bankofabyssinia|dashen|awash|safaricom|mpesa)[a-zA-Z0-9\-]*\.(xyz|top|online|site|club|work|biz|info|cc)',
     caseSensitive: false,
   );
 
   // Layer 3: Legitimate Context & Conversational Patterns (False-Positive Shield)
   static final RegExp _conversationalGreetings = RegExp(
-    r'^(selam|salam|hi|hello|hey|dehna\s+neh|dehna\s+nesh|endet\s+neh|nagaa|akkam|እንደምን\s+አለህ|ሰላም|ደህና\s+ነህ|ሰላም\s+ነው)\b',
+    r'^(selam|salam|hi\b|hello|hey\b|dehna\s+neh|dehna\s+nesh|endet\s+neh|endet\s+nesh|nagaa|akkam|እንደምን\s+አለህ|እንደምን\s+አደርክ|ሰላም|ደህና\s+ነህ|ደህና\s+ነሽ|ሰላም\s+ነው|እንዴት\s+ነህ|እንዴት\s+ነሽ)\b',
+    caseSensitive: false,
+  );
+
+  static final RegExp _personalChatRequests = RegExp(
+    r'(are\s+you\s+coming|can\s+you\s+call|call\s+me|where\s+are\s+you|see\s+you|meet\s+at|ደውልልኝ|ደውይልኝ|ዛሬ\s*እንገናኝ|የት\s*ነህ|የት\s*ነሽ|መምጣት\s*ትችላለህ|naaf\s*bilbili|akkam\s*jirta|har\x27a\s*wal\s*agarra)',
     caseSensitive: false,
   );
 
   static final RegExp _cleanPersonalTransferPattern = RegExp(
-    r'^(acc(ount)?\s*(no|number|num)?\s*:?\s*\d{8,16}|አካውንት\s*:?\s*\d{8,16}|herrega\s*:?\s*\d{8,16})',
+    r'^(acc(ount)?\s*(no|number|num)?\s*:?\s*\d{8,16}|አካውንት\s*:?\s*\d{8,16}|herrega\s*:?\s*\d{8,16}|cbe\s*:?\s*\d{8,16}|telebirr\s*:?\s*\d{8,12})',
     caseSensitive: false,
   );
 
   static final RegExp _legitimateBankNoticeSyntax = RegExp(
-    r'(dear\s+customer|account\s+\w+\s+has\s+been|debited\s+by|credited\s+by|txn\s+id|balance\s+is|ref\s*no|a/c\b|ሒሳብዎ\s+በ|ብር\s+ገቢ|ብር\s+ወጪ|ቀሪ\s+ሒሳብ)',
+    r'(dear\s+customer|account\s+\w+\s+has\s+been|debited\s+by|credited\s+by|txn\s+id|balance\s+is|ref\s*no|a/c\b|ሒሳብዎ\s+በ|ብር\s+ገቢ|ብር\s+ወጪ|ቀሪ\s+ሒሳብ|herregni\s+keessan|qarshii\s+galii|hafeen\s+herrega)',
     caseSensitive: false,
   );
 
@@ -152,6 +174,7 @@ class ScamDetector {
     final hasFakePrize = _fakePrizePattern.hasMatch(message);
     final hasUrgency = _urgencyThreatPattern.hasMatch(message);
     final hasConversationalContext = _conversationalGreetings.hasMatch(message.trim());
+    final hasPersonalChat = _personalChatRequests.hasMatch(message);
     final hasCleanPersonalTransfer = _cleanPersonalTransferPattern.hasMatch(message.trim());
     final hasLegitimateBankSyntax = _legitimateBankNoticeSyntax.hasMatch(message);
 
@@ -207,15 +230,15 @@ class ScamDetector {
     // LAYER 3: CONTEXTUAL INTENT & FALSE-POSITIVE SHIELD (On-Device)
     // =========================================================================
     if (isPersonal && !impersonation.isImpersonation && !hasOtpDemand && !hasUssd && !hasPhishingCloneDomain && !hasFakeRefund && !hasFakePrize) {
-      if (hasConversationalContext) {
-        // Natural conversational greeting between personal contacts
+      if (hasConversationalContext || hasPersonalChat) {
+        // Natural conversational greeting or friendly chat between personal contacts
         const convMitigation = -30;
         totalScore += convMitigation;
         evidence.add(const EvidenceSignal(
           layerIndex: 3,
           layerName: 'Layer 3: Conversational Context',
           scoreDelta: convMitigation,
-          description: 'Recognized standard conversational greeting and friendly context',
+          description: 'Recognized standard conversational greeting and friendly chat context',
           isMitigation: true,
         ));
       }

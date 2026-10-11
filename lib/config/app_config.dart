@@ -6,12 +6,12 @@ class AppConfig {
 
   static const String virusTotalApiKey = String.fromEnvironment(
     'VIRUSTOTAL_API_KEY',
-    defaultValue: 'demo-key-replace-with-yours',
+    defaultValue: '',
   );
 
   static const String oditVerifyApiKey = String.fromEnvironment(
     'ODIT_VERIFY_API_KEY',
-    defaultValue: 'vk_live_NmLSmC8j2B5HyF89wztleq9Kc0rDe_jQ',
+    defaultValue: '',
   );
 
   static const String appVersion = '1.0.0+1';
@@ -20,11 +20,11 @@ class AppConfig {
 
   static const String appName = 'መከታ (Meketa)';
 
-  static bool get hasDemoKeys {
-    return geminiApiKey == 'demo-key-replace-with-yours' ||
-        virusTotalApiKey == 'demo-key-replace-with-yours' ||
-        oditVerifyApiKey == 'demo-key-replace-with-yours';
-  }
+  static bool get isGeminiConfigured => geminiApiKey.isNotEmpty;
+  static bool get isVirusTotalConfigured => virusTotalApiKey.isNotEmpty;
+  static bool get isOditVerifyConfigured => oditVerifyApiKey.isNotEmpty;
+
+  static bool get hasDemoKeys => false;
 
   static const Map<String, String> defaultHttpHeaders = {
     'User-Agent': 'Meketa-Scam-Shield/1.0 (+https://meketa.et)',

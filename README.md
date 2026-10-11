@@ -208,13 +208,13 @@ API keys and service configuration are managed in `lib/config/app_config.dart`:
 class AppConfig {
   static const String geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
   static const String virusTotalApiKey = String.fromEnvironment('VIRUSTOTAL_API_KEY');
-  static const String oditVerifyApiKey = 'vk_live_NmLSmC8j2B5HyF89wztleq9Kc0rDe_jQ';
+  static const String oditVerifyApiKey = String.fromEnvironment('ODIT_VERIFY_API_KEY');
 }
 ```
 
-> 💡 **Tip:** You can inject your Gemini API key at build time using `--dart-define`:
+> 💡 **Tip:** Pass configuration keys securely at build or run time using `--dart-define`:
 > ```bash
-> flutter build apk --release --dart-define=GEMINI_API_KEY=your_key_here
+> flutter run --dart-define=GEMINI_API_KEY=your_key --dart-define=VIRUSTOTAL_API_KEY=your_key --dart-define=ODIT_VERIFY_API_KEY=your_key
 > ```
 
 ---

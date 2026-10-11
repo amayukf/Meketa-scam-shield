@@ -101,15 +101,15 @@ class AppTranslations {
       'privacy': 'Privacy Policy',
       'privacy_sub': 'All data stays on your phone',
       'select_lang': 'Select Language',
-      'cloud_ai_privacy': 'Cloud AI Analysis',
-      'cloud_ai_privacy_sub': 'Allow optional Gemini AI scanning for ambiguous messages',
+      'cloud_ai_privacy': 'Cloud AI Analysis (Opt-In)',
+      'cloud_ai_privacy_sub': 'Disabled by default. Enable to allow optional Gemini AI second opinion',
       'clear_chat': 'Clear Chat',
       'search_placeholder': 'Search messages or senders...',
       'undo': 'Undo',
 
       'privacy_policy_title': 'Privacy Policy',
       'privacy_policy_body':
-          'All SMS analysis happens locally on your device. No message content is ever sent to external servers without permission.',
+          'All SMS threat detection executes 100% on-device. No message content, sender numbers, or personal data are transmitted to external servers without your explicit opt-in consent. External cloud AI services are turned off by default.',
       'about_body':
           'መከታ (Meketa) v1.0.0+1\n\nOffline SMS & Cyber Threat Detection Platform for Ethiopian Users.',
     },
@@ -214,15 +214,15 @@ class AppTranslations {
       'privacy': 'ግላዊነት',
       'privacy_sub': 'ሁሉም መረጃ በስልክዎ ላይ ብቻ ይኖራል',
       'select_lang': 'ቋንቋ ይምረጡ',
-      'cloud_ai_privacy': 'የክላውድ AI ምርመራ',
-      'cloud_ai_privacy_sub': 'ለአጠራጣሪ መልዕክቶች Gemini AI መጠቀምን ፍቀድ',
+      'cloud_ai_privacy': 'የክላውድ AI ምርመራ (በፈቃድ)',
+      'cloud_ai_privacy_sub': 'በነባሪነት ጠፍቷል። አማራጭ የ Gemini AI ምርመራን ለመፍቀድ ያብሩ',
       'clear_chat': 'ውይይት አጽዳ',
       'search_placeholder': 'መልዕክት ወይም ስልክ ይፈልጉ...',
       'undo': 'መለስ',
 
       'privacy_policy_title': 'የግላዊነት ፖሊሲ',
       'privacy_policy_body':
-          'የመልዕክት ምርመራዎች በሙሉ በስልክዎ ላይ ይከናወናሉ። ምንም መረጃ ወደ ውጭ አገልጋይ አይላክም።',
+          'የ SMS ማጭበርበር ምርመራ 100% በስልክዎ ላይ ይከናወናል። የእርስዎ ግልጽ ፈቃድ ሳይኖር ምንም መልዕክት ወይም የግል መረጃ ወደ ውጭ አገልጋይ አይላክም። የክላውድ AI አገልግሎት በነባሪነት ጠፍቷል።',
       'about_body':
           'መከታ (Meketa) v1.0.0+1\n\nለኢትዮጵያውያን ተጠቃሚዎች ከመስመር ውጭ የኤስኤምኤስ ማጭበርበር መከላከያ።',
     },
@@ -321,10 +321,12 @@ class AppTranslations {
       'about_sub': 'መከታ (Meketa) v1.0.0+1',
       'privacy': 'Ittisa Dhuunfaa',
       'privacy_sub': 'Oodeeffannoon hundi bilbila keessan irratti hafa',
+      'cloud_ai_privacy': 'Qorannoo Cloud AI (Filannoo)',
+      'cloud_ai_privacy_sub': 'Dursanii cufameera. Qorannoo AI dabalataaf banaa',
       'select_lang': 'Afaan Filadhu',
       'privacy_policy_title': 'Ittisa Dhuunfaa',
       'privacy_policy_body':
-          'Qorannoon ergaa hundi bilbila keessan irratti raawwatama.',
+          'Qorannoon ergaa hundi 100% bilbila keessan irratti raawwatama. Hayyama keessan malee ergaan gara server alaa hin erggamu. Cloud AI dursanii cufameera.',
       'about_body':
           'መከታ (Meketa) v1.0.0+1\n\nAppilikeeshiinii eegumsa ergaa gowwoomsaa fayyadamtoota Itoophiyaaf prepare godhame.',
     },

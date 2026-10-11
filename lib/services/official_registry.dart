@@ -157,6 +157,46 @@ class OfficialRegistry {
       officialDomains: ['ethiopianairlines.com'],
       baseTrustWeight: -35,
     ),
+    OfficialOrganization(
+      id: 'safaricom',
+      name: 'Safaricom Ethiopia / M-PESA',
+      category: 'Telecom & Mobile Money',
+      verifiedSenderIds: {'700', '777', '733', 'safaricom', 'm-pesa', 'mpesa', 'safaricomet'},
+      officialDomains: ['safaricom.et'],
+      baseTrustWeight: -45,
+    ),
+    OfficialOrganization(
+      id: 'oromia_bank',
+      name: 'Oromia Bank',
+      category: 'Banking',
+      verifiedSenderIds: {'855', 'oromiabank', 'oromia_bank'},
+      officialDomains: ['oromiabank.com'],
+      baseTrustWeight: -40,
+    ),
+    OfficialOrganization(
+      id: 'siinqee',
+      name: 'Siinqee Bank',
+      category: 'Banking',
+      verifiedSenderIds: {'8222', 'siinqee', 'siinqeebank'},
+      officialDomains: ['siinqeebank.com.et'],
+      baseTrustWeight: -40,
+    ),
+    OfficialOrganization(
+      id: 'berhan',
+      name: 'Berhan Bank',
+      category: 'Banking',
+      verifiedSenderIds: {'848', 'berhan', 'berhanbank'},
+      officialDomains: ['berhanbank.com'],
+      baseTrustWeight: -40,
+    ),
+    OfficialOrganization(
+      id: 'enat',
+      name: 'Enat Bank',
+      category: 'Banking',
+      verifiedSenderIds: {'877', 'enat', 'enatbank'},
+      officialDomains: ['enatbank.com'],
+      baseTrustWeight: -40,
+    ),
   ];
 
   static final RegExp _personalPattern = RegExp(r'^(9|7)\d{8}$');
@@ -263,8 +303,8 @@ class OfficialRegistry {
         );
       }
 
-      if (RegExp(r'\b(telebirr|tele\s*birr)\b', caseSensitive: false).hasMatch(messageLower) &&
-          RegExp(r'(account|blocked|otp|pin|transfer|bonus|package|upgrade|restrict|received|credited)', caseSensitive: false).hasMatch(messageLower)) {
+      if (RegExp(r'(\b(telebirr|tele\s*birr|safaricom|m-pesa|mpesa)\b|ቴሌብር|ኢትዮ\s*ቴሌኮም)', caseSensitive: false).hasMatch(messageLower) &&
+          RegExp(r'(account|blocked|otp|pin|transfer|bonus|package|upgrade|restrict|received|credited|ሒሳብ|ገቢ|ወጪ|ኮድ|herrega|koodii|galii)', caseSensitive: false).hasMatch(messageLower)) {
         return ImpersonationCheck(
           isImpersonation: true,
           claimedOrgName: 'telebirr',
@@ -273,8 +313,8 @@ class OfficialRegistry {
         );
       }
 
-      if (RegExp(r'\b(cbe|cbebirr|commercial\s+bank|bank\s+of\s+abyssinia|dashen|awash|zemen)\b', caseSensitive: false).hasMatch(messageLower) &&
-          RegExp(r'(account|blocked|otp|pin|transfer|win|birr|credited|debited)', caseSensitive: false).hasMatch(messageLower)) {
+      if (RegExp(r'(\b(cbe|cbebirr|commercial\s+bank|bank\s+of\s+abyssinia|dashen|awash|zemen|oromia\s*bank|siinqee)\b|ንግድ\s*ባንክ|የኢትዮጵያ\s*ንግድ\s*ባንክ|አቢሲኒያ|አዋሽ|ዳሽን|ባንክ)', caseSensitive: false).hasMatch(messageLower) &&
+          RegExp(r'(account|blocked|otp|pin|transfer|win|birr|credited|debited|ሒሳብ|ሒሳብዎ|ገቢ|ወጪ|ብር|herrega|qarshii|galii)', caseSensitive: false).hasMatch(messageLower)) {
         return ImpersonationCheck(
           isImpersonation: true,
           claimedOrgName: 'Banking Service',

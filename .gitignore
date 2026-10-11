@@ -50,3 +50,8 @@ key.properties
 *.keystore
 *.jks
 *.apk
+
+# Environment secrets
+.env
+.env*.local
+!.env.example

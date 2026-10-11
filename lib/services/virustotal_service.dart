@@ -42,7 +42,7 @@ class VirusTotalService {
   static Future<LinkScanResult> scanLink(
     String rawUrl, {
     String? apiKey,
-    bool allowCloudAnalysis = true,
+    bool allowCloudAnalysis = false,
   }) async {
     String cleanUrl = rawUrl.trim();
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
@@ -53,7 +53,6 @@ class VirusTotalService {
 
     // 1. Strict Privacy Enforcement: if cloud analysis is disabled, return local heuristic only
     if (!allowCloudAnalysis) {
-      debugPrint('[VirusTotal] Privacy guard: cloud link scan disabled by user.');
       return heuristicResult;
     }
 

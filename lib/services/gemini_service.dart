@@ -177,11 +177,10 @@ YOUR INSTRUCTIONS:
     String sender, {
     List<String> localFlags = const [],
     int localConfidence = 50,
-    bool allowCloudAnalysis = true,
+    bool allowCloudAnalysis = false,
   }) async {
     // 1. Strict Privacy Enforcement: if cloud analysis is disabled, do not transmit text
     if (!allowCloudAnalysis) {
-      debugPrint('[GeminiService] Privacy guard: cloud analysis is disabled by user.');
       return GeminiAnalysisResult.fallback();
     }
 
@@ -192,7 +191,6 @@ YOUR INSTRUCTIONS:
     // 2. Check on-device hash cache (7-day TTL) to avoid redundant API calls
     final cached = await ThreatIntelligenceDb.getCachedAiResult(sender, message);
     if (cached != null) {
-      debugPrint('[GeminiService] Using fresh cached AI result for $sender');
       return GeminiAnalysisResult(
         verdict: cached.verdict,
         confidence: cached.confidence,
@@ -205,7 +203,6 @@ YOUR INSTRUCTIONS:
     }
 
     if (!(await ConnectivityService.hasInternet)) {
-      debugPrint('[GeminiService] Offline — skipping AI second-opinion call');
       return GeminiAnalysisResult.fallback();
     }
 
@@ -301,7 +298,7 @@ Respond ONLY with a valid JSON object in this exact format:
     required List<String> detectedFlags,
     required int confidence,
     required String language,
-    bool allowCloudAnalysis = true,
+    bool allowCloudAnalysis = false,
   }) async {
     final isAmharic = language == 'Amharic';
 

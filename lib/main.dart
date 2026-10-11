@@ -1,9 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'providers/scam_provider.dart';
@@ -14,9 +12,11 @@ import 'screens/history_screen.dart';
 import 'screens/receipt_check_screen.dart';
 import 'screens/tools_screen.dart';
 import 'screens/settings_screen.dart';
-import 'screens/scam_alert_screen.dart';
 import 'screens/splash_screen.dart';
 import 'widgets/welcome_briefing_dialog.dart';
+
+import 'services/sms_channel_service.dart';
+import 'services/permission_service.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -35,6 +35,12 @@ void main() async {
     } catch (e) {
       debugPrint('[ScamShield] Notification init error: $e');
     }
+
+    // Decoupled native SMS listener
+    SmsChannelService.initialize(
+      navigatorKey: navigatorKey,
+      notificationsPlugin: flutterLocalNotificationsPlugin,
+    );
   }
 
   runApp(
@@ -67,11 +73,12 @@ class MainNavigation extends StatefulWidget {
   State<MainNavigation> createState() => MainNavigationState();
 }
 
-class MainNavigationState extends State<MainNavigation> {
+class MainNavigationState extends State<MainNavigation>
+    with WidgetsBindingObserver {
   int _currentIndex = 0;
-  static const _channel = MethodChannel('sms_channel');
   bool _permissionsGranted = false;
   bool _permissionChecked = false;
+  bool _isPermanentlyDenied = false;
   String _smsPermStatus = '…';
   String _notifPermStatus = '…';
 
@@ -86,8 +93,8 @@ class MainNavigationState extends State<MainNavigation> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkPermissions();
-    _setupSmsChannel();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         WelcomeBriefingDialog.checkAndShow(context);
@@ -95,98 +102,47 @@ class MainNavigationState extends State<MainNavigation> {
     });
   }
 
-  Future<void> _checkPermissions() async {
-    if (kIsWeb) {
-      setState(() {
-        _smsPermStatus = 'granted';
-        _notifPermStatus = 'granted';
-        _permissionsGranted = true;
-        _permissionChecked = true;
-      });
-      return;
-    }
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
-    final smsStatus = await Permission.sms.status;
-    final notifStatus = await Permission.notification.status;
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Automatically re-verify permissions when user returns from Settings
+      _checkPermissions();
+    }
+  }
+
+  Future<void> _checkPermissions() async {
+    final status = await PermissionService.checkPermissions();
     if (!mounted) return;
 
     setState(() {
-      _smsPermStatus = smsStatus.toString();
-      _notifPermStatus = notifStatus.toString();
-      _permissionsGranted = smsStatus.isGranted;
+      _smsPermStatus = status.smsStatus;
+      _notifPermStatus = status.notifStatus;
+      _permissionsGranted = status.isGranted;
+      _isPermanentlyDenied = status.isPermanentlyDenied;
       _permissionChecked = true;
     });
-
-    debugPrint('[ScamShield] SMS permission: $smsStatus');
-    debugPrint('[ScamShield] Notification permission: $notifStatus');
   }
 
   Future<void> _requestPermissions() async {
-    if (kIsWeb) {
-      setState(() {
-        _permissionsGranted = true;
-      });
+    if (_isPermanentlyDenied) {
+      await PermissionService.openSettings();
       return;
     }
-    final statuses = await [
-      Permission.sms,
-      Permission.notification,
-    ].request();
+
+    final status = await PermissionService.requestPermissions();
     if (!mounted) return;
 
-    final smsGranted = statuses[Permission.sms]?.isGranted ?? false;
-
     setState(() {
-      _smsPermStatus = statuses[Permission.sms].toString();
-      _notifPermStatus = statuses[Permission.notification].toString();
-      _permissionsGranted = smsGranted;
-    });
-
-    debugPrint('[ScamShield] After request — SMS: ${statuses[Permission.sms]}, Notification: ${statuses[Permission.notification]}');
-  }
-
-  void _setupSmsChannel() {
-    _channel.setMethodCallHandler((call) async {
-      if (call.method == 'onSmsReceived') {
-        final args = call.arguments as Map;
-        final sender = args['sender'] as String;
-        final body = args['body'] as String;
-
-        debugPrint('[ScamShield] SMS received from: $sender');
-
-        final provider = Provider.of<ScamProvider>(context, listen: false);
-        final alert = await provider.analyzeAndSave(body, sender);
-
-        debugPrint('[ScamShield] Analysis result: confidence=${alert.confidence}, isScam=${alert.isScam}, notify=${alert.shouldNotify}');
-
-        if (alert.shouldNotify) {
-          // Show high precision notification
-          const androidDetails = AndroidNotificationDetails(
-            'scam_alerts',
-            'Scam Alerts',
-            channelDescription: 'High precision alerts for detected scam messages',
-            importance: Importance.high,
-            priority: Priority.high,
-            color: Color(0xFFD32F2F),
-          );
-          const details = NotificationDetails(android: androidDetails);
-          await flutterLocalNotificationsPlugin.show(
-            alert.id ?? 0,
-            '🚨 POSSIBLE SCAM DETECTED',
-            '${alert.claimedOrganization ?? "Unknown Sender"} (${alert.sender}): ${alert.message}',
-            details,
-          );
-
-          // Navigate to alert screen
-          if (mounted) {
-            navigatorKey.currentState?.push(
-              MaterialPageRoute(
-                builder: (_) => ScamAlertScreen(alert: alert),
-              ),
-            );
-          }
-        }
-      }
+      _smsPermStatus = status.smsStatus;
+      _notifPermStatus = status.notifStatus;
+      _permissionsGranted = status.isGranted;
+      _isPermanentlyDenied = status.isPermanentlyDenied;
     });
   }
 
@@ -264,6 +220,29 @@ class MainNavigationState extends State<MainNavigation> {
                   ),
                 ),
                 const SizedBox(height: 24),
+                if (_isPermanentlyDenied) ...[
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.danger.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.info_outline_rounded, color: AppColors.danger, size: 20),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'SMS permission is permanently disabled. Please tap below to open Android App Settings and grant permission.',
+                            style: TextStyle(fontSize: 12.5, color: AppColors.danger, height: 1.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -278,7 +257,7 @@ class MainNavigationState extends State<MainNavigation> {
                       elevation: 0,
                     ),
                     child: Text(
-                      'Grant Permission',
+                      _isPermanentlyDenied ? 'Open App Settings' : 'Grant Permission',
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -286,6 +265,13 @@ class MainNavigationState extends State<MainNavigation> {
                     ),
                   ),
                 ),
+                if (_isPermanentlyDenied) ...[
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _checkPermissions,
+                    child: const Text('Check Status Again'),
+                  ),
+                ],
               ],
             ),
           ),

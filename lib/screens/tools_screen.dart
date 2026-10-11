@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../providers/scam_provider.dart';
 import '../services/virustotal_service.dart';
 import '../services/ussd_analyzer_service.dart';
 import '../widgets/education_hub_widget.dart';
@@ -45,7 +47,11 @@ class _ToolsScreenState extends State<ToolsScreen>
       _isScanning = true;
     });
 
-    final result = await VirusTotalService.scanLink(url);
+    final allowCloud = context.read<ScamProvider>().allowCloudAiAnalysis;
+    final result = await VirusTotalService.scanLink(
+      url,
+      allowCloudAnalysis: allowCloud,
+    );
     if (!mounted) return;
 
     setState(() {

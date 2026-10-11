@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
+import 'connectivity_service.dart';
+import 'receipt_format_checker.dart';
 
 /// Structured result representing the exact Odit Verify (v.odit.et) API response
 class OditVerifyResult {
@@ -323,6 +325,70 @@ class OditVerifyService {
     final timesChecked = ((await _getPrefInt(timesKey)) ?? 0) + 1;
     final nowStr = _formatTimestamp(DateTime.now());
 
+    // 1. Offline & Missing Key Fallback: Use on-device format validation
+    if (!hasValidKey) {
+      final formatCheck = ReceiptFormatChecker.check(cleanInput);
+      return OditVerifyResult(
+        ok: formatCheck.formatValid,
+        providerKey: formatCheck.provider != 'Unknown' && formatCheck.provider != 'Unrecognized'
+            ? formatCheck.provider
+            : selectedProvider,
+        resolvedUrl: formatCheck.officialUrl ?? _buildTargetUrl(cleanInput, selectedProvider),
+        error: formatCheck.formatValid ? null : formatCheck.reason,
+        receipt: formatCheck.formatValid
+            ? {
+                'provider': formatCheck.provider,
+                'referenceNumber': formatCheck.referenceNumber,
+                'verified': true,
+                'status': 'FORMAT_VALID_OFFLINE',
+                'offline': true,
+                'message': formatCheck.reason,
+              }
+            : null,
+        rawJson: {
+          'ok': formatCheck.formatValid,
+          'offline': true,
+          'provider': formatCheck.provider,
+          'reason': formatCheck.reason,
+        },
+        isDuplicate: previousScanTime != null,
+        lastVerifiedAt: previousScanTime,
+        timesChecked: timesChecked,
+      );
+    }
+
+    if (!(await ConnectivityService.hasInternet)) {
+      final formatCheck = ReceiptFormatChecker.check(cleanInput);
+      return OditVerifyResult(
+        ok: formatCheck.formatValid,
+        providerKey: formatCheck.provider != 'Unknown' && formatCheck.provider != 'Unrecognized'
+            ? formatCheck.provider
+            : selectedProvider,
+        resolvedUrl: formatCheck.officialUrl ?? _buildTargetUrl(cleanInput, selectedProvider),
+        error: formatCheck.formatValid
+            ? 'Offline mode: Verified format locally. Live API verification unavailable offline.'
+            : formatCheck.reason,
+        receipt: formatCheck.formatValid
+            ? {
+                'provider': formatCheck.provider,
+                'referenceNumber': formatCheck.referenceNumber,
+                'verified': true,
+                'status': 'FORMAT_VALID_OFFLINE',
+                'offline': true,
+                'message': 'Format verified offline: ${formatCheck.reason}',
+              }
+            : null,
+        rawJson: {
+          'ok': formatCheck.formatValid,
+          'offline': true,
+          'reason': formatCheck.reason,
+        },
+        isDuplicate: previousScanTime != null,
+        lastVerifiedAt: previousScanTime,
+        timesChecked: timesChecked,
+      );
+    }
+
     final isFullUrl = cleanInput.startsWith('http://') || cleanInput.startsWith('https://');
 
     Map<String, dynamic> requestPayload;
@@ -336,7 +402,7 @@ class OditVerifyService {
       requestPayload = {'url': targetUrl};
     }
 
-    debugPrint('[OditVerify] Sending to $_verifyEndpoint with payload: ${jsonEncode(requestPayload)}');
+    debugPrint('[OditVerify] Dispatching verification query to upstream API');
 
     try {
       final response = await http
@@ -347,7 +413,7 @@ class OditVerifyService {
           )
           .timeout(const Duration(seconds: 30));
 
-      debugPrint('[OditVerify] Live API Response HTTP ${response.statusCode}: ${response.body}');
+      debugPrint('[OditVerify] Live API Response HTTP ${response.statusCode}');
 
       Map<String, dynamic> data;
       try {
@@ -356,8 +422,7 @@ class OditVerifyService {
         data = {
           'ok': false,
           'httpStatus': response.statusCode,
-          'error': 'Non-JSON response from upstream: ${response.body}',
-          'rawBody': response.body,
+          'error': 'Unexpected non-JSON response from verification server.',
         };
       }
 
@@ -375,13 +440,20 @@ class OditVerifyService {
 
       return result;
     } catch (e) {
-      debugPrint('[OditVerify] Network error calling live API: $e');
+      debugPrint('[OditVerify] Network error connecting to verification API: $e');
+      // Graceful fallback to offline format check on network error
+      final formatCheck = ReceiptFormatChecker.check(cleanInput);
       return OditVerifyResult(
-        ok: false,
+        ok: formatCheck.formatValid,
         providerKey: selectedProvider,
         resolvedUrl: _buildTargetUrl(cleanInput, selectedProvider),
-        error: 'Failed to connect to Odit Verify API: $e',
-        rawJson: {'ok': false, 'error': e.toString()},
+        error: formatCheck.formatValid
+            ? 'Live verification server unavailable. Reference format is structurally valid.'
+            : 'Could not connect to verification server: $e',
+        rawJson: {'ok': formatCheck.formatValid, 'error': e.toString(), 'offline': true},
+        isDuplicate: previousScanTime != null,
+        lastVerifiedAt: previousScanTime,
+        timesChecked: timesChecked,
       );
     }
   }
