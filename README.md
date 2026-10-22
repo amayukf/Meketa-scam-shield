@@ -219,6 +219,10 @@ class AppConfig {
 
 ---
 
+NAME- Amayu kaba
+ID- ctc-835-26
+
+
 ## 🎓 Academic & Graduation Project
 
 Meketa was engineered as a high-impact graduation project addressing the critical challenge of mobile financial fraud in Ethiopia.
