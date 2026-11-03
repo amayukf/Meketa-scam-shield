@@ -220,7 +220,17 @@ class AppConfig {
 ---
 
 NAME- Amayu kaba
+
+
+
 ID- ctc-835-26
+
+
+
+video link :- https://drive.google.com/file/d/1DWWwcuUdjrBj9SQHiqiqW9kRZUKtsZLF/view?usp=sharing
+
+
+
 
 
 ## 🎓 Academic & Graduation Project
